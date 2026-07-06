@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+}
+
+model Course {
+  id            String     @id @default(cuid())
+  titleEn       String
+  titleHe       String
+  descriptionEn String
+  descriptionHe String
+  price         Float
+  durationMin   Int
+  maxParticipants Int     @default(8)
+  imageUrl      String?
+  color         String     @default("amber")
+  active        Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  slots         TimeSlot[]
+}
+
+model TimeSlot {
+  id       String    @id @default(cuid())
+  courseId String
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  startsAt DateTime
+  endsAt   DateTime
+  capacity Int       @default(1)
+  bookings Booking[]
+}
+
+model Booking {
+  id        String   @id @default(cuid())
+  slotId    String
+  slot      TimeSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String
+  email     String?
+  status    String   @default("confirmed")
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,71 @@
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "";
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    credentials: "include",
+    headers: options.body ? { "Content-Type": "application/json" } : undefined,
+    ...options,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, data.error ?? "Request failed");
+  return data as T;
+}
+
+export const api = {
+  get: <T>(path: string) => request<T>(path),
+  post: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
+  put: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
+  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+};
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
+export interface Course {
+  id: string;
+  titleEn: string;
+  titleHe: string;
+  descriptionEn: string;
+  descriptionHe: string;
+  price: number;
+  durationMin: number;
+  maxParticipants: number;
+  imageUrl?: string | null;
+  color: string;
+  active: boolean;
+  _count?: { slots: number };
+}
+
+export interface Slot {
+  id: string;
+  courseId: string;
+  startsAt: string;
+  endsAt: string;
+  capacity: number;
+  booked: number;
+  course?: { id: string; titleEn: string; titleHe: string };
+}
+
+export interface Booking {
+  id: string;
+  status: string;
+  createdAt: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  slot: Slot & { course: Course };
+}

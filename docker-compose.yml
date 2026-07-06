@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mom_course
+    volumes:
+      - mom_course_pg:/var/lib/postgresql/data
+
+volumes:
+  mom_course_pg:

@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #faf8f4;
+  --color-ink: #211d19;
+  --color-clay-50: #faf4ef;
+  --color-clay-100: #f3e4d9;
+  --color-clay-200: #e6c9b5;
+  --color-clay-300: #d5a685;
+  --color-clay-400: #c48a63;
+  --color-clay-500: #b0714b;
+  --color-clay-600: #9a5d3c;
+  --color-clay-700: #7d4a31;
+  --color-clay-800: #653c2a;
+  --color-clay-900: #533226;
+  --font-sans: "Assistant", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Cormorant Garamond", "Frank Ruhl Libre", Georgia, serif;
+}
+
+html {
+  background-color: var(--color-paper);
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hebrew reads better slightly larger in Assistant */
+:dir(rtl) body {
+  letter-spacing: 0;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+}
+
+.modal-backdrop-in {
+  animation: modal-fade-in 220ms ease-out both;
+}
+
+.modal-backdrop-out {
+  animation: modal-fade-out 180ms ease-in both;
+}
+
+.modal-panel-in {
+  animation: modal-panel-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.modal-panel-out {
+  animation: modal-panel-out 180ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop-in,
+  .modal-backdrop-out,
+  .modal-panel-in,
+  .modal-panel-out {
+    animation: none;
+  }
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
