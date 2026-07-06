@@ -96,6 +96,8 @@ const dictionaries = {
     aboutFollow: "Follow on Instagram",
     errorGeneric: "Something went wrong. Please try again.",
     switchLang: "עברית",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
   },
   he: {
     appName: "שושי הלפרין",
@@ -192,6 +194,8 @@ const dictionaries = {
     aboutFollow: "עקבו באינסטגרם",
     errorGeneric: "משהו השתבש. נסו שוב.",
     switchLang: "English",
+    openMenu: "פתיחת תפריט",
+    closeMenu: "סגירת תפריט",
   },
 } as const;
 
