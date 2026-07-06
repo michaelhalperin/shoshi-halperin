@@ -11,16 +11,18 @@ import { slotsRouter } from "./routes/slots.js";
 const app = express();
 const PORT = Number(process.env.PORT ?? 3000);
 
+const normalizeOrigin = (origin: string) => origin.replace(/\/$/, "");
+
 const clientOrigins = (process.env.CLIENT_URL ?? "http://localhost:5173")
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin.trim()))
   .filter(Boolean);
 
 app.set("trust proxy", 1);
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || clientOrigins.includes(origin)) {
+      if (!origin || clientOrigins.includes(normalizeOrigin(origin))) {
         callback(null, true);
         return;
       }
@@ -47,4 +49,5 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
+  console.log(`CORS allowed origins: ${clientOrigins.join(", ") || "(none)"}`);
 });
