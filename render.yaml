@@ -7,7 +7,7 @@ services:
     name: mom-course-api
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build --workspace server && npm run db:deploy --workspace server
+    buildCommand: npm install --include=dev && npm run build --workspace server && npm run db:deploy --workspace server
     startCommand: npm run start --workspace server
     healthCheckPath: /api/health
     envVars:
