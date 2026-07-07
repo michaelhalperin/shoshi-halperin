@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type Course, type Slot } from "../api";
 import DateSlider from "../components/DateSlider";
 import { toDateKey } from "../components/SlotCalendar";
-import { CourseImage, OrnamentalDivider, Spinner } from "../components/ui";
+import { Button, CourseImage, ErrorNote, OrnamentalDivider, Spinner } from "../components/ui";
 import { useI18n } from "../i18n";
 import { withViewTransition } from "../viewTransition";
 
@@ -15,17 +15,27 @@ export default function Home() {
   const { t, pick, lang } = useI18n();
   const [courses, setCourses] = useState<Course[] | null>(null);
   const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
+    setLoadError(false);
+    setCourses(null);
+    setSlots(null);
     Promise.all([
       api.get<{ courses: Course[] }>("/api/courses"),
       api.get<{ slots: Slot[] }>("/api/slots"),
-    ]).then(([coursesRes, slotsRes]) => {
-      setCourses(coursesRes.courses);
-      setSlots(slotsRes.slots);
-    });
+    ])
+      .then(([coursesRes, slotsRes]) => {
+        setCourses(coursesRes.courses);
+        setSlots(slotsRes.slots);
+      })
+      .catch(() => setLoadError(true));
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const openSlots = useMemo(() => (slots ?? []).filter(isOpen), [slots]);
 
@@ -70,7 +80,14 @@ export default function Home() {
         <OrnamentalDivider className="mt-10" />
       </section>
 
-      {!courses || !slots ? (
+      {loadError ? (
+        <div className="mx-auto max-w-md px-4 pb-10 text-center">
+          <ErrorNote message={t("loadError")} />
+          <Button className="mt-4" onClick={loadData}>
+            {t("retry")}
+          </Button>
+        </div>
+      ) : !courses || !slots ? (
         <Spinner />
       ) : (
         <>

@@ -22,8 +22,9 @@ export function setAuthCookie(res: Response, user: AuthUser) {
   const production = process.env.NODE_ENV === "production";
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    sameSite: production ? "none" : "lax",
+    sameSite: "lax",
     secure: production,
+    path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
@@ -32,8 +33,9 @@ export function clearAuthCookie(res: Response) {
   const production = process.env.NODE_ENV === "production";
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    sameSite: production ? "none" : "lax",
+    sameSite: "lax",
     secure: production,
+    path: "/",
   });
 }
 

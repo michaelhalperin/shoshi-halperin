@@ -1,16 +1,26 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Recipe } from "../api";
-import { CourseImage, LinkedCourseLink, OrnamentalDivider, Spinner } from "../components/ui";
+import { Button, CourseImage, ErrorNote, LinkedCourseLink, OrnamentalDivider, Spinner } from "../components/ui";
 import { useI18n } from "../i18n";
 
 export default function Recipes() {
   const { t, pick } = useI18n();
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadData = useCallback(() => {
+    setLoadError(false);
+    setRecipes(null);
+    api
+      .get<{ recipes: Recipe[] }>("/api/recipes")
+      .then((d) => setRecipes(d.recipes))
+      .catch(() => setLoadError(true));
+  }, []);
 
   useEffect(() => {
-    api.get<{ recipes: Recipe[] }>("/api/recipes").then((d) => setRecipes(d.recipes));
-  }, []);
+    loadData();
+  }, [loadData]);
 
   return (
     <div>
@@ -24,7 +34,14 @@ export default function Recipes() {
         <OrnamentalDivider className="mt-10" />
       </section>
 
-      {!recipes ? (
+      {loadError ? (
+        <div className="mx-auto max-w-md px-4 pb-10 text-center">
+          <ErrorNote message={t("loadError")} />
+          <Button className="mt-4" onClick={loadData}>
+            {t("retry")}
+          </Button>
+        </div>
+      ) : !recipes ? (
         <Spinner />
       ) : recipes.length === 0 ? (
         <p className="pb-10 text-center font-light text-stone-500">{t("noRecipes")}</p>

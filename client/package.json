@@ -6,7 +6,7 @@
     "fonts": "node scripts/generate-fonts.mjs",
     "predev": "npm run fonts",
     "dev": "vite",
-    "build": "npm run fonts && vite build",
+    "build": "node scripts/write-vercel-config.mjs && npm run fonts && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },

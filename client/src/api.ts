@@ -6,17 +6,34 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "";
+// Production uses same-origin /api (proxied by Vercel) so auth cookies work on mobile Safari.
+const API_BASE = import.meta.env.PROD
+  ? ""
+  : ((import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "");
+
+const REQUEST_TIMEOUT_MS = 60_000;
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
-    ...options,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.error ?? "Request failed");
-  return data as T;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      credentials: "include",
+      signal: controller.signal,
+      headers: options.body ? { "Content-Type": "application/json" } : undefined,
+      ...options,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(res.status, data.error ?? "Request failed");
+    return data as T;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError(0, "Request timed out");
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 export const api = {
@@ -27,14 +44,26 @@ export const api = {
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   upload: async <T>(path: string, formData: FormData) => {
-    const res = await fetch(`${API_BASE}${path}`, {
-      method: "POST",
-      credentials: "include",
-      body: formData,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new ApiError(res.status, data.error ?? "Upload failed");
-    return data as T;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const res = await fetch(`${API_BASE}${path}`, {
+        method: "POST",
+        credentials: "include",
+        signal: controller.signal,
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new ApiError(res.status, data.error ?? "Upload failed");
+      return data as T;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new ApiError(0, "Request timed out");
+      }
+      throw err;
+    } finally {
+      window.clearTimeout(timer);
+    }
   },
   deleteWithQuery: <T>(path: string, params: Record<string, string>) => {
     const query = new URLSearchParams(params).toString();

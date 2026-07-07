@@ -79,16 +79,18 @@ The build runs migrations (`db push`) and seeds sample data on each deploy. Chan
 ### 2. Deploy the site on Vercel
 
 1. In [Vercel](https://vercel.com), import the same GitHub repo.
-2. Vercel picks up `vercel.json` automatically (builds `client/`, serves `client/dist`).
+2. Vercel picks up `client/vercel.json` automatically (builds `client/`, serves `client/dist`).
 3. Under **Settings → Environment Variables**, add:
-   - `VITE_API_URL` = your Render API URL (no trailing slash), e.g. `https://mom-course-api.onrender.com`
-4. Redeploy so the env var is baked into the client build.
+   - `API_URL` = your Render API URL (no trailing slash), e.g. `https://mom-course-api.onrender.com`  
+     This proxies `/api/*` through your Vercel domain so admin login cookies work on mobile Safari.
+4. **Do not set `VITE_API_URL` on Vercel** — production uses same-origin `/api` requests.
+5. Redeploy so the proxy and env var are applied.
 
 ### 3. Verify
 
-- Visit your Vercel URL — courses and booking should load.
-- Log in at `/login` with the admin account.
-- If the site loads but API calls fail, check `CLIENT_URL` on Render matches your Vercel URL exactly (including `https://`).
+- Visit your Vercel URL on a phone — courses and booking should load.
+- Log in at `/login`, reload the page — you should stay logged in.
+- If the site loads but API calls fail, check `API_URL` on Vercel matches your Render service URL.
 
 ### Environment variables
 
@@ -98,7 +100,8 @@ The build runs migrations (`db push`) and seeds sample data on each deploy. Chan
 | `JWT_SECRET` | Render (auto-generated) | Signs admin session cookies |
 | `CLIENT_URL` | Render | Allowed CORS origin(s), comma-separated |
 | `NODE_ENV` | Render | Set to `production` in `render.yaml` |
-| `VITE_API_URL` | Vercel | Render API base URL for the React app |
+| `API_URL` | Vercel | Render API URL — Vercel proxies `/api/*` to this host |
+| `VITE_API_URL` | Local only | Optional override for local dev; leave unset on Vercel |
 | `AWS_REGION` | Render | S3 bucket region (e.g. `eu-north-1`) |
 | `AWS_S3_BUCKET` | Render | S3 bucket name |
 | `AWS_S3_PUBLIC_URL` | Render | Public base URL for uploaded images |

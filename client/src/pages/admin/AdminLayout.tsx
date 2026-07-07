@@ -18,14 +18,14 @@ export default function AdminLayout() {
   return (
     <div>
       <h1 className="mb-6 font-display text-4xl font-medium text-ink">{t("admin")}</h1>
-      <nav className="mb-8 flex flex-wrap gap-x-6 gap-y-2 overflow-hidden border-b border-stone-200">
+      <nav className="scrollbar-hide -mx-5 mb-8 flex flex-nowrap gap-x-6 overflow-x-auto overflow-y-hidden border-b border-stone-200 px-5 sm:-mx-8 sm:px-8">
         {tabs.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}
             end={tab.end}
             className={({ isActive }) =>
-              `-mb-px whitespace-nowrap border-b-2 px-1 pb-3 text-[13px] font-semibold uppercase tracking-[0.14em] transition-colors ${
+              `-mb-px shrink-0 whitespace-nowrap border-b-2 px-1 pb-3 text-[13px] font-semibold uppercase tracking-[0.14em] transition-colors ${
                 isActive
                   ? "border-clay-500 text-ink"
                   : "border-transparent text-stone-400 hover:text-ink"
