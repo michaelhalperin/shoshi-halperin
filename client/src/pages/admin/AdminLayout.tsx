@@ -11,12 +11,13 @@ export default function AdminLayout() {
     { to: "/admin/gallery", label: t("manageGallery") },
     { to: "/admin/slots", label: t("manageSlots") },
     { to: "/admin/bookings", label: t("manageBookings") },
+    { to: "/admin/coupons", label: t("manageCoupons") },
   ];
 
   return (
     <div>
       <h1 className="mb-6 font-display text-4xl font-medium text-ink">{t("admin")}</h1>
-      <nav className="mb-8 flex gap-6 overflow-x-auto border-b border-stone-200">
+      <nav className="mb-8 flex flex-wrap gap-x-6 gap-y-2 overflow-hidden border-b border-stone-200">
         {tabs.map((tab) => (
           <NavLink
             key={tab.to}

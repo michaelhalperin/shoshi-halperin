@@ -98,7 +98,35 @@ export interface Booking {
   name: string;
   phone: string;
   email?: string | null;
+  couponCode?: string | null;
+  originalPrice?: number | null;
+  finalPrice?: number | null;
+  discountAmount?: number | null;
   slot: Slot & { course: Course };
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discountType: "percent" | "fixed";
+  discountValue: number;
+  maxUses: number | null;
+  usedCount: number;
+  expiresAt: string | null;
+  active: boolean;
+  courseId: string | null;
+  course?: { id: string; titleEn: string; titleHe: string } | null;
+  _count?: { bookings: number };
+}
+
+export interface CouponValidation {
+  valid: true;
+  code: string;
+  discountType: "percent" | "fixed";
+  discountValue: number;
+  originalPrice: number;
+  discountAmount: number;
+  finalPrice: number;
 }
 
 export interface GalleryImage {

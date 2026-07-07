@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { api, ApiError, type Course, type Slot } from "../api";
+import { api, ApiError, type CouponValidation, type Course, type Slot } from "../api";
 import SlotCalendar, { toDateKey } from "../components/SlotCalendar";
 import { Button, CourseImage, ErrorNote, Input, Modal, OrnamentalDivider, Spinner } from "../components/ui";
 import { formatDateTime, formatTime, useI18n } from "../i18n";
@@ -18,6 +18,10 @@ export default function CourseDetail() {
   // Guest booking form state
   const [bookingSlot, setBookingSlot] = useState<Slot | null>(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "" });
+  const [couponCode, setCouponCode] = useState("");
+  const [couponResult, setCouponResult] = useState<CouponValidation | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -63,9 +67,31 @@ export default function CourseDetail() {
 
   const openBooking = (slot: Slot) => {
     setForm({ name: "", phone: "", email: "" });
+    setCouponCode("");
+    setCouponResult(null);
+    setCouponError("");
     setFormError("");
     setSuccess("");
     setBookingSlot(slot);
+  };
+
+  const applyCoupon = async () => {
+    if (!course || !couponCode.trim()) return;
+    setCouponError("");
+    setCouponBusy(true);
+    try {
+      const result = await api.post<CouponValidation>("/api/coupons/validate", {
+        code: couponCode.trim(),
+        courseId: course.id,
+      });
+      setCouponResult(result);
+      setCouponCode(result.code);
+    } catch (err) {
+      setCouponResult(null);
+      setCouponError(err instanceof ApiError ? err.message : t("couponInvalid"));
+    } finally {
+      setCouponBusy(false);
+    }
   };
 
   const submitBooking = async (e: FormEvent) => {
@@ -74,7 +100,11 @@ export default function CourseDetail() {
     setFormError("");
     setBusy(true);
     try {
-      await api.post("/api/bookings", { slotId: bookingSlot.id, ...form });
+      await api.post("/api/bookings", {
+        slotId: bookingSlot.id,
+        ...form,
+        couponCode: couponResult?.code ?? (couponCode.trim() || undefined),
+      });
       setBookingSlot(null);
       setSuccess(t("bookedSuccess"));
       loadSlots();
@@ -208,6 +238,33 @@ export default function CourseDetail() {
             {formatTime(bookingSlot.startsAt, lang)}–{formatTime(bookingSlot.endsAt, lang)}
           </p>
           <p className="mb-6 text-sm font-light text-stone-500">{t("bookingFormHint")}</p>
+
+          <div className="mb-6 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm">
+            {couponResult ? (
+              <div className="space-y-1">
+                <div className="flex justify-between text-stone-600">
+                  <span>{t("originalPrice")}</span>
+                  <span>₪{couponResult.originalPrice}</span>
+                </div>
+                <div className="flex justify-between text-emerald-700">
+                  <span>
+                    {t("discount")} ({couponResult.code})
+                  </span>
+                  <span>-₪{couponResult.discountAmount}</span>
+                </div>
+                <div className="flex justify-between border-t border-stone-200 pt-2 font-semibold text-ink">
+                  <span>{t("finalPrice")}</span>
+                  <span>₪{couponResult.finalPrice}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-between font-semibold text-ink">
+                <span>{t("price")}</span>
+                <span>₪{course.price}</span>
+              </div>
+            )}
+          </div>
+
           <form onSubmit={submitBooking} className="space-y-5">
             <Input
               label={t("name")}
@@ -232,6 +289,36 @@ export default function CourseDetail() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               autoComplete="email"
             />
+            <div>
+              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t("couponCodeOptional")}
+              </span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase());
+                    setCouponResult(null);
+                    setCouponError("");
+                  }}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 font-mono text-sm uppercase tracking-wide text-ink outline-none transition-colors focus:border-clay-500"
+                  autoComplete="off"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={couponBusy || !couponCode.trim()}
+                  onClick={applyCoupon}
+                >
+                  {t("applyCoupon")}
+                </Button>
+              </div>
+              {couponResult && (
+                <p className="mt-2 text-sm text-emerald-700">{t("couponApplied")}</p>
+              )}
+              {couponError && <p className="mt-2 text-sm text-red-600">{couponError}</p>}
+            </div>
             {formError && <ErrorNote message={formError} />}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setBookingSlot(null)}>

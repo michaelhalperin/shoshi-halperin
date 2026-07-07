@@ -32,6 +32,8 @@ export default function AdminBookings() {
 
   if (!bookings) return <Spinner />;
 
+  const now = Date.now();
+
   return (
     <div>
       <h2 className="mb-5 text-xs font-semibold uppercase tracking-[0.25em] text-clay-600">
@@ -44,13 +46,15 @@ export default function AdminBookings() {
               <th className="px-4 py-3 text-start font-semibold">{t("student")}</th>
               <th className="px-4 py-3 text-start font-semibold">{t("course")}</th>
               <th className="px-4 py-3 text-start font-semibold">{t("when")}</th>
+              <th className="px-4 py-3 text-start font-semibold">{t("price")}</th>
               <th className="px-4 py-3 text-start font-semibold">{t("status")}</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {bookings.map((b) => {
-              const upcoming = new Date(b.slot.startsAt) >= new Date();
+              const isPast = new Date(b.slot.endsAt).getTime() < now;
+              const isUpcoming = new Date(b.slot.startsAt).getTime() >= now;
               return (
                 <tr key={b.id} className="border-b border-stone-100 last:border-0">
                   <td className="px-4 py-3">
@@ -62,15 +66,32 @@ export default function AdminBookings() {
                   </td>
                   <td className="px-4 py-3 text-stone-700">{pick(b.slot.course, "title")}</td>
                   <td className="px-4 py-3 text-stone-600">{formatDateTime(b.slot.startsAt, lang)}</td>
+                  <td className="px-4 py-3 text-stone-600">
+                    {b.finalPrice != null ? (
+                      <div>
+                        <div className="font-semibold text-ink">₪{b.finalPrice}</div>
+                        {b.discountAmount ? (
+                          <div className="text-xs text-stone-500">
+                            ₪{b.originalPrice} · -₪{b.discountAmount}
+                            {b.couponCode ? ` (${b.couponCode})` : ""}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <span>₪{b.slot.course.price}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     {b.status === "cancelled" ? (
                       <Badge tone="red">{t("cancelled")}</Badge>
+                    ) : isPast ? (
+                      <Badge tone="stone">{t("completed")}</Badge>
                     ) : (
                       <Badge tone="green">{t("confirmed")}</Badge>
                     )}
                   </td>
                   <td className="px-4 py-3 text-end">
-                    {b.status === "confirmed" && upcoming && (
+                    {b.status === "confirmed" && isUpcoming && (
                       <Button
                         variant="danger"
                         onClick={() => {
@@ -87,7 +108,7 @@ export default function AdminBookings() {
             })}
             {bookings.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-stone-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-stone-500">
                   —
                 </td>
               </tr>

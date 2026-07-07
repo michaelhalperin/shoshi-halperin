@@ -24,6 +24,33 @@ function fromLocalValue(value: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function startOfDay(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isSameDay(a: Date, b: Date) {
+  return startOfDay(a).getTime() === startOfDay(b).getTime();
+}
+
+function isBeforeDay(day: Date, minDate: Date) {
+  return startOfDay(day).getTime() < startOfDay(minDate).getTime();
+}
+
+function clampToMin(date: Date, minDate: Date) {
+  return date.getTime() < minDate.getTime() ? new Date(minDate) : date;
+}
+
+function defaultPickerDate(minDate: Date) {
+  const next = new Date(minDate);
+  next.setSeconds(0, 0);
+  if (next.getTime() < minDate.getTime()) {
+    next.setMinutes(next.getMinutes() + 1, 0, 0);
+  }
+  return next;
+}
+
 function weekStart(lang: Lang) {
   return lang === "he" ? 0 : 1;
 }
@@ -85,17 +112,73 @@ function useIsMobilePicker() {
   return isMobile;
 }
 
+const PANEL_GAP = 8;
+const VIEWPORT_MARGIN = 16;
+const PANEL_MAX_WIDTH = 320;
+const PANEL_ESTIMATED_HEIGHT = 380;
+
+function getViewportBounds() {
+  const viewport = window.visualViewport;
+  const offsetTop = viewport?.offsetTop ?? 0;
+  const offsetLeft = viewport?.offsetLeft ?? 0;
+  const width = viewport?.width ?? window.innerWidth;
+  const height = viewport?.height ?? window.innerHeight;
+
+  return {
+    top: offsetTop + VIEWPORT_MARGIN,
+    left: offsetLeft + VIEWPORT_MARGIN,
+    right: offsetLeft + width - VIEWPORT_MARGIN,
+    bottom: offsetTop + height - VIEWPORT_MARGIN,
+    width: Math.max(0, width - VIEWPORT_MARGIN * 2),
+    height: Math.max(0, height - VIEWPORT_MARGIN * 2),
+  };
+}
+
+function computePanelPosition(trigger: DOMRect, panelWidth: number, panelHeight: number) {
+  const bounds = getViewportBounds();
+  const width = Math.min(panelWidth, bounds.width);
+
+  let left = trigger.left;
+  if (left + width > bounds.right) left = bounds.right - width;
+  if (left < bounds.left) left = bounds.left;
+
+  const spaceBelow = bounds.bottom - trigger.bottom - PANEL_GAP;
+  const spaceAbove = trigger.top - bounds.top - PANEL_GAP;
+  const fitsBelow = spaceBelow >= panelHeight;
+  const fitsAbove = spaceAbove >= panelHeight;
+  const openBelow = fitsBelow || (!fitsAbove && spaceBelow >= spaceAbove);
+
+  let top: number;
+  let maxHeight: number;
+
+  if (openBelow) {
+    top = trigger.bottom + PANEL_GAP;
+    maxHeight = bounds.bottom - top;
+  } else {
+    top = trigger.top - PANEL_GAP - panelHeight;
+    if (top < bounds.top) top = bounds.top;
+    maxHeight = trigger.top - PANEL_GAP - top;
+  }
+
+  maxHeight = Math.min(maxHeight, panelHeight);
+  maxHeight = Math.max(maxHeight, Math.min(220, bounds.height));
+
+  return { left, top, width, maxHeight };
+}
+
 export function DateTimePicker({
   label,
   value,
   onChange,
   required,
+  disablePast = true,
   className = "",
 }: {
   label?: string;
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  disablePast?: boolean;
   className?: string;
 }) {
   const { lang, t } = useI18n();
@@ -106,14 +189,17 @@ export function DateTimePicker({
   const isMobile = useIsMobilePicker();
   const [open, setOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
+  const [minDate, setMinDate] = useState(() => new Date());
 
-  const selected = fromLocalValue(value) ?? new Date();
+  const selected = fromLocalValue(value) ?? defaultPickerDate(minDate);
   const [viewYear, setViewYear] = useState(selected.getFullYear());
   const [viewMonth, setViewMonth] = useState(selected.getMonth());
 
   useEffect(() => {
     if (!open) return;
-    const d = fromLocalValue(value) ?? new Date();
+    const now = new Date();
+    setMinDate(now);
+    const d = fromLocalValue(value) ?? defaultPickerDate(now);
     setViewYear(d.getFullYear());
     setViewMonth(d.getMonth());
   }, [open, value]);
@@ -127,42 +213,48 @@ export function DateTimePicker({
       if (!trigger) return;
 
       const rect = trigger.getBoundingClientRect();
-      const panelWidth = Math.min(320, window.innerWidth - 32);
-      const panelHeight = panel?.offsetHeight ?? 380;
-      const margin = 16;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const openUp = spaceBelow < panelHeight + margin && rect.top > panelHeight + margin;
-      const left = Math.min(Math.max(margin, rect.left), window.innerWidth - panelWidth - margin);
-
-      let top = openUp ? rect.top - margin : rect.bottom + margin;
-      if (openUp) {
-        top = Math.max(margin, rect.top - margin);
-      } else {
-        top = Math.min(top, window.innerHeight - panelHeight - margin);
-        top = Math.max(margin, top);
-      }
+      const panelHeight = panel?.offsetHeight ?? PANEL_ESTIMATED_HEIGHT;
+      const { left, top, width, maxHeight } = computePanelPosition(
+        rect,
+        PANEL_MAX_WIDTH,
+        panelHeight
+      );
 
       setPanelStyle({
         position: "fixed",
         left,
-        width: panelWidth,
         top,
-        maxHeight: `min(380px, calc(100dvh - ${margin * 2}px))`,
+        width,
+        maxHeight,
         overflowY: "auto",
-        transform: openUp ? "translateY(-100%)" : undefined,
-        zIndex: 70,
+        zIndex: 80,
       });
     };
 
+    let resizeObserver: ResizeObserver | null = null;
+
     updatePosition();
-    const frame = window.requestAnimationFrame(updatePosition);
+    const frame = window.requestAnimationFrame(() => {
+      updatePosition();
+      const mountedPanel = panelRef.current;
+      if (mountedPanel && typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(updatePosition);
+        resizeObserver.observe(mountedPanel);
+      }
+    });
+
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
+    window.visualViewport?.addEventListener("resize", updatePosition);
+    window.visualViewport?.addEventListener("scroll", updatePosition);
 
     return () => {
       window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
+      window.visualViewport?.removeEventListener("resize", updatePosition);
+      window.visualViewport?.removeEventListener("scroll", updatePosition);
     };
   }, [open, isMobile, viewMonth, viewYear]);
 
@@ -188,32 +280,48 @@ export function DateTimePicker({
   }, [open]);
 
   const update = (date: Date) => {
-    onChange(toLocalValue(date));
+    const next = disablePast ? clampToMin(date, minDate) : date;
+    onChange(toLocalValue(next));
   };
 
   const setDatePart = (year: number, month: number, day: number) => {
-    const base = fromLocalValue(value) ?? new Date();
+    const base = fromLocalValue(value) ?? defaultPickerDate(minDate);
     const next = new Date(base);
     next.setFullYear(year, month, day);
     update(next);
   };
 
   const setTimePart = (hour: number, minute: number) => {
-    const base = fromLocalValue(value) ?? new Date();
+    const base = fromLocalValue(value) ?? defaultPickerDate(minDate);
     const next = new Date(base);
     next.setHours(hour, minute, 0, 0);
     update(next);
   };
 
   const shiftMonth = (delta: number) => {
-    const d = new Date(viewYear, viewMonth + delta, 1);
-    setViewYear(d.getFullYear());
-    setViewMonth(d.getMonth());
+    const nextView = new Date(viewYear, viewMonth + delta, 1);
+    if (disablePast) {
+      const earliest = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+      if (nextView < earliest) return;
+    }
+    setViewYear(nextView.getFullYear());
+    setViewMonth(nextView.getMonth());
   };
 
   const current = fromLocalValue(value);
-  const hours = current?.getHours() ?? 10;
-  const minutes = current?.getMinutes() ?? 0;
+  const selectedDay = current ?? defaultPickerDate(minDate);
+  const hours = selectedDay.getHours();
+  const minutes = selectedDay.getMinutes();
+  const isTodaySelected = disablePast && isSameDay(selectedDay, minDate);
+  const minHour = isTodaySelected ? minDate.getHours() : 0;
+  const minMinute = isTodaySelected && hours === minHour ? minDate.getMinutes() : 0;
+  const displayHours = isTodaySelected ? Math.max(hours, minHour) : hours;
+  const displayMinutes =
+    isTodaySelected && displayHours === minHour ? Math.max(minutes, minMinute) : minutes;
+  const canGoPrevMonth =
+    !disablePast ||
+    viewYear > minDate.getFullYear() ||
+    (viewYear === minDate.getFullYear() && viewMonth > minDate.getMonth());
   const days = buildCalendarDays(viewYear, viewMonth, lang);
   const weekdays = weekdayLabels(lang);
   const today = new Date();
@@ -225,7 +333,8 @@ export function DateTimePicker({
         <button
           type="button"
           onClick={() => shiftMonth(-1)}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink"
+          disabled={!canGoPrevMonth}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
           aria-label={t("prevMonth")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
@@ -261,6 +370,7 @@ export function DateTimePicker({
           if (!day) return <span key={`empty-${index}`} />;
           const dayStart = new Date(day);
           dayStart.setHours(0, 0, 0, 0);
+          const isPast = disablePast && isBeforeDay(day, minDate);
           const isSelected =
             current &&
             day.getFullYear() === current.getFullYear() &&
@@ -271,13 +381,16 @@ export function DateTimePicker({
             <button
               key={day.toISOString()}
               type="button"
+              disabled={isPast}
               onClick={() => setDatePart(day.getFullYear(), day.getMonth(), day.getDate())}
               className={`flex h-9 w-full items-center justify-center rounded-full text-sm transition-colors ${
-                isSelected
-                  ? "bg-ink font-semibold text-paper"
-                  : isToday
-                    ? "font-semibold text-clay-700 ring-1 ring-clay-300 hover:bg-clay-50"
-                    : "text-ink hover:bg-stone-100"
+                isPast
+                  ? "cursor-not-allowed text-stone-300"
+                  : isSelected
+                    ? "bg-ink font-semibold text-paper"
+                    : isToday
+                      ? "font-semibold text-clay-700 ring-1 ring-clay-300 hover:bg-clay-50"
+                      : "text-ink hover:bg-stone-100"
               }`}
             >
               {day.getDate()}
@@ -292,29 +405,35 @@ export function DateTimePicker({
         </span>
         <div className="flex items-center gap-2">
           <select
-            value={hours}
-            onChange={(e) => setTimePart(Number(e.target.value), minutes)}
+            value={displayHours}
+            onChange={(e) => setTimePart(Number(e.target.value), displayMinutes)}
             className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors focus:border-ink"
             aria-label={t("pickTime")}
           >
-            {Array.from({ length: 24 }, (_, hour) => (
-              <option key={hour} value={hour}>
-                {pad(hour)}
-              </option>
-            ))}
+            {Array.from({ length: 24 }, (_, hour) => {
+              const disabled = disablePast && isTodaySelected && hour < minHour;
+              return (
+                <option key={hour} value={hour} disabled={disabled}>
+                  {pad(hour)}
+                </option>
+              );
+            })}
           </select>
           <span className="text-stone-400">:</span>
           <select
-            value={minutes}
-            onChange={(e) => setTimePart(hours, Number(e.target.value))}
+            value={displayMinutes}
+            onChange={(e) => setTimePart(displayHours, Number(e.target.value))}
             className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors focus:border-ink"
             aria-label={t("pickTime")}
           >
-            {Array.from({ length: 60 }, (_, minute) => (
-              <option key={minute} value={minute}>
-                {pad(minute)}
-              </option>
-            ))}
+            {Array.from({ length: 60 }, (_, minute) => {
+              const disabled = disablePast && isTodaySelected && displayHours === minHour && minute < minMinute;
+              return (
+                <option key={minute} value={minute} disabled={disabled}>
+                  {pad(minute)}
+                </option>
+              );
+            })}
           </select>
         </div>
       </div>
@@ -362,7 +481,7 @@ export function DateTimePicker({
       {open &&
         (isMobile
           ? renderPortal(
-              <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/50 backdrop-blur-[2px] datepicker-panel-in">
+              <div className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/50 backdrop-blur-[2px] datepicker-panel-in">
                 <button
                   type="button"
                   className="absolute inset-0"

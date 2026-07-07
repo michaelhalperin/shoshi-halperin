@@ -31,6 +31,7 @@ model Course {
   createdAt     DateTime   @default(now())
   slots         TimeSlot[]
   recipes       Recipe[]
+  coupons       Coupon[]
 }
 
 model Recipe {
@@ -61,13 +62,34 @@ model TimeSlot {
   bookings Booking[]
 }
 
+model Coupon {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  discountType  String
+  discountValue Float
+  maxUses       Int?
+  usedCount     Int       @default(0)
+  expiresAt     DateTime?
+  active        Boolean   @default(true)
+  courseId      String?
+  course        Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  bookings      Booking[]
+}
+
 model Booking {
-  id        String   @id @default(cuid())
-  slotId    String
-  slot      TimeSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
-  name      String
-  phone     String
-  email     String?
-  status    String   @default("confirmed")
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  slotId         String
+  slot           TimeSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  name           String
+  phone          String
+  email          String?
+  status         String   @default("confirmed")
+  couponId       String?
+  coupon         Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode     String?
+  originalPrice  Float?
+  finalPrice     Float?
+  discountAmount Float?
+  createdAt      DateTime @default(now())
 }

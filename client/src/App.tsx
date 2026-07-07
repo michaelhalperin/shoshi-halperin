@@ -4,6 +4,7 @@ import { useAuth } from "./auth";
 import Layout from "./components/Layout";
 import { Spinner } from "./components/ui";
 import AdminBookings from "./pages/admin/AdminBookings";
+import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminCourses from "./pages/admin/AdminCourses";
 import AdminGallery from "./pages/admin/AdminGallery";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="gallery" element={<AdminGallery />} />
             <Route path="slots" element={<AdminSlots />} />
             <Route path="bookings" element={<AdminBookings />} />
+            <Route path="coupons" element={<AdminCoupons />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Route>

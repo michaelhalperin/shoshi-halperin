@@ -5,6 +5,7 @@ import express from "express";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { bookingsRouter } from "./routes/bookings.js";
+import { couponsRouter } from "./routes/coupons.js";
 import { coursesRouter } from "./routes/courses.js";
 import { galleryRouter } from "./routes/gallery.js";
 import { recipesRouter } from "./routes/recipes.js";
@@ -41,6 +42,7 @@ app.use("/api/courses", coursesRouter);
 app.use("/api/recipes", recipesRouter);
 app.use("/api/slots", slotsRouter);
 app.use("/api/bookings", bookingsRouter);
+app.use("/api/coupons", couponsRouter);
 app.use("/api/gallery", galleryRouter);
 app.use("/api/admin", adminRouter);
 
