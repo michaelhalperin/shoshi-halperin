@@ -115,3 +115,19 @@ export async function deleteImage(key: string, folder: UploadFolder) {
     })
   );
 }
+
+/** Extract an S3 object key from a stored public URL, if it belongs to this bucket. */
+export function keyFromPublicUrl(url: string): string | null {
+  if (!publicBaseUrl || !url.startsWith(`${publicBaseUrl}/`)) {
+    return null;
+  }
+  return url.slice(publicBaseUrl.length + 1);
+}
+
+/** Delete an uploaded image by its public URL. No-op for external URLs or when S3 is not configured. */
+export async function deleteImageByUrl(url: string | null | undefined, folder: UploadFolder) {
+  if (!url || !isS3Configured()) return;
+  const key = keyFromPublicUrl(url);
+  if (!key || !key.startsWith(`${folder}/`)) return;
+  await deleteImage(key, folder);
+}

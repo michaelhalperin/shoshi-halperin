@@ -10,7 +10,7 @@ export default function AdminSlots() {
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState<Slot | "new" | null>(null);
-  const [form, setForm] = useState({ courseId: "", startsAt: "", endsAt: "", capacity: 1 });
+  const [form, setForm] = useState({ courseId: "", startsAt: "", endsAt: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState<Slot | null>(null);
@@ -30,7 +30,7 @@ export default function AdminSlots() {
   }, []);
 
   const openNew = () => {
-    setForm({ courseId: courses?.[0]?.id ?? "", startsAt: "", endsAt: "", capacity: 8 });
+    setForm({ courseId: courses?.[0]?.id ?? "", startsAt: "", endsAt: "" });
     setError("");
     setEditing("new");
   };
@@ -40,7 +40,6 @@ export default function AdminSlots() {
       courseId: slot.courseId,
       startsAt: toLocalInputValue(slot.startsAt),
       endsAt: toLocalInputValue(slot.endsAt),
-      capacity: slot.capacity,
     });
     setError("");
     setEditing(slot);
@@ -54,7 +53,6 @@ export default function AdminSlots() {
       courseId: form.courseId,
       startsAt: new Date(form.startsAt).toISOString(),
       endsAt: new Date(form.endsAt).toISOString(),
-      capacity: form.capacity,
     };
     try {
       if (editing === "new") {
@@ -87,6 +85,8 @@ export default function AdminSlots() {
   };
 
   if (!courses) return <Spinner />;
+
+  const selectedCourse = courses.find((c) => c.id === form.courseId);
 
   return (
     <div>
@@ -180,6 +180,11 @@ export default function AdminSlots() {
                 </option>
               ))}
             </Select>
+            {selectedCourse && (
+              <p className="text-sm font-light text-stone-500">
+                {t("slotCapacityNote")} ({t("maxParticipants")}: {selectedCourse.maxParticipants})
+              </p>
+            )}
             <div className="grid gap-5 sm:grid-cols-2">
               <DateTimePicker
                 label={t("startTime")}
@@ -194,14 +199,6 @@ export default function AdminSlots() {
                 onChange={(endsAt) => setForm({ ...form, endsAt })}
               />
             </div>
-            <Input
-              label={t("capacity")}
-              type="number"
-              min={1}
-              required
-              value={form.capacity}
-              onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })}
-            />
             {error && <ErrorNote message={error} />}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setEditing(null)}>

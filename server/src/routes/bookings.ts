@@ -22,11 +22,14 @@ bookingsRouter.post("/", async (req, res) => {
     const booking = await prisma.$transaction(async (tx) => {
       const slot = await tx.timeSlot.findUnique({
         where: { id: slotId },
-        include: { _count: { select: { bookings: { where: { status: "confirmed" } } } } },
+        include: {
+          course: { select: { maxParticipants: true } },
+          _count: { select: { bookings: { where: { status: "confirmed" } } } },
+        },
       });
       if (!slot) throw new Error("SLOT_NOT_FOUND");
       if (slot.startsAt <= new Date()) throw new Error("SLOT_IN_PAST");
-      if (slot._count.bookings >= slot.capacity) throw new Error("SLOT_FULL");
+      if (slot._count.bookings >= slot.course.maxParticipants) throw new Error("SLOT_FULL");
 
       const duplicate = await tx.booking.findFirst({
         where: { slotId, phone, status: "confirmed" },

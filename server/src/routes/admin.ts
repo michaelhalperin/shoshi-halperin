@@ -54,7 +54,7 @@ adminRouter.get("/slots", async (req, res) => {
     where: courseId ? { courseId } : {},
     orderBy: { startsAt: "desc" },
     include: {
-      course: { select: { id: true, titleEn: true, titleHe: true } },
+      course: { select: { id: true, titleEn: true, titleHe: true, maxParticipants: true } },
       _count: { select: { bookings: { where: { status: "confirmed" } } } },
     },
   });
@@ -65,7 +65,7 @@ adminRouter.get("/slots", async (req, res) => {
       course: s.course,
       startsAt: s.startsAt,
       endsAt: s.endsAt,
-      capacity: s.capacity,
+      capacity: s.course.maxParticipants,
       booked: s._count.bookings,
     })),
   });

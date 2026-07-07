@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAdmin } from "../auth.js";
 import { prisma } from "../prisma.js";
+import { deleteImageByUrl } from "../s3.js";
 
 export const coursesRouter = Router();
 
@@ -44,8 +45,35 @@ coursesRouter.post("/", requireAdmin, async (req, res) => {
 coursesRouter.put("/:id", requireAdmin, async (req, res) => {
   const parsed = courseSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
+  const existing = await prisma.course.findUnique({ where: { id: req.params.id } });
+  if (!existing) return res.status(404).json({ error: "Course not found" });
+
+  if (
+    parsed.data.maxParticipants !== undefined &&
+    parsed.data.maxParticipants !== existing.maxParticipants
+  ) {
+    const slots = await prisma.timeSlot.findMany({
+      where: { courseId: req.params.id },
+      include: { _count: { select: { bookings: { where: { status: "confirmed" } } } } },
+    });
+    if (slots.some((s) => s._count.bookings > parsed.data.maxParticipants!)) {
+      return res.status(400).json({
+        error: "Cannot set max participants below current bookings on one or more time slots",
+      });
+    }
+    await prisma.timeSlot.updateMany({
+      where: { courseId: req.params.id },
+      data: { capacity: parsed.data.maxParticipants },
+    });
+  }
+
   try {
     const course = await prisma.course.update({ where: { id: req.params.id }, data: parsed.data });
+    if (parsed.data.imageUrl !== undefined && parsed.data.imageUrl !== existing.imageUrl) {
+      deleteImageByUrl(existing.imageUrl, "courses").catch((err) =>
+        console.warn("Failed to delete replaced course image:", err)
+      );
+    }
     res.json({ course });
   } catch {
     res.status(404).json({ error: "Course not found" });
@@ -53,8 +81,13 @@ coursesRouter.put("/:id", requireAdmin, async (req, res) => {
 });
 
 coursesRouter.delete("/:id", requireAdmin, async (req, res) => {
+  const existing = await prisma.course.findUnique({ where: { id: req.params.id } });
+  if (!existing) return res.status(404).json({ error: "Course not found" });
   try {
     await prisma.course.delete({ where: { id: req.params.id } });
+    deleteImageByUrl(existing.imageUrl, "courses").catch((err) =>
+      console.warn("Failed to delete course image:", err)
+    );
     res.json({ ok: true });
   } catch {
     res.status(404).json({ error: "Course not found" });
