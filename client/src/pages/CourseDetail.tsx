@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api, ApiError, type Course, type Slot } from "../api";
 import SlotCalendar, { toDateKey } from "../components/SlotCalendar";
 import { Button, CourseImage, ErrorNote, Input, Modal, OrnamentalDivider, Spinner } from "../components/ui";
 import { formatDateTime, formatTime, useI18n } from "../i18n";
+import NotFound from "./NotFound";
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
   const { t, lang, pick } = useI18n();
-  const navigate = useNavigate();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [success, setSuccess] = useState("");
 
   // Guest booking form state
@@ -28,12 +29,17 @@ export default function CourseDetail() {
   }, [id]);
 
   useEffect(() => {
+    setCourse(null);
+    setSlots(null);
+    setNotFound(false);
     api
       .get<{ course: Course }>(`/api/courses/${id}`)
-      .then((d) => setCourse(d.course))
-      .catch(() => navigate("/"));
-    loadSlots();
-  }, [id, loadSlots, navigate]);
+      .then((d) => {
+        setCourse(d.course);
+        loadSlots();
+      })
+      .catch(() => setNotFound(true));
+  }, [id, loadSlots]);
 
   useEffect(() => {
     if (!slots?.length) {
@@ -79,6 +85,7 @@ export default function CourseDetail() {
     }
   };
 
+  if (notFound) return <NotFound />;
   if (!course) return <Spinner />;
 
   return (

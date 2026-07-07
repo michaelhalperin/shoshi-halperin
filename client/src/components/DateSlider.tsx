@@ -43,11 +43,11 @@ export default function DateSlider({
           <button
             type="button"
             onClick={() => onSelectDate(null)}
-            className={`flex w-14 shrink-0 snap-center flex-col items-center justify-center border-b-2 pb-2 transition-colors ${
+            className={`flex w-14 shrink-0 snap-center self-stretch flex-col items-center justify-center border-b-2 pb-2 transition-colors ${
               !selectedDate ? "border-ink text-ink" : "border-transparent text-stone-400 hover:text-stone-600"
             }`}
           >
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">{allLabel}</span>
+            <span className="text-sm font-semibold uppercase tracking-wide">{allLabel}</span>
           </button>
 
           {dates.map((date) => {

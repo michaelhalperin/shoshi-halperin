@@ -146,7 +146,7 @@ export default function SlotCalendar({
                     ? allFull
                       ? "bg-stone-100 text-stone-400 hover:bg-stone-200"
                       : "bg-clay-50 font-medium text-clay-800 hover:bg-clay-100"
-                    : "cursor-default text-stone-300"
+                    : "text-stone-300 disabled:cursor-default"
               } ${isToday && !isSelected ? "ring-1 ring-clay-400 ring-offset-1" : ""}`}
             >
               {day}

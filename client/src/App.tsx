@@ -6,12 +6,16 @@ import { Spinner } from "./components/ui";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminCourses from "./pages/admin/AdminCourses";
 import AdminLayout from "./pages/admin/AdminLayout";
+import AdminRecipes from "./pages/admin/AdminRecipes";
 import AdminSlots from "./pages/admin/AdminSlots";
 import Dashboard from "./pages/admin/Dashboard";
 import About from "./pages/About";
 import CourseDetail from "./pages/CourseDetail";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import RecipeDetail from "./pages/RecipeDetail";
+import NotFound from "./pages/NotFound";
+import Recipes from "./pages/Recipes";
 
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -27,6 +31,8 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/recipes" element={<Recipes />} />
+          <Route path="/recipes/:id" element={<RecipeDetail />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/login" element={<Login />} />
           <Route
@@ -39,10 +45,11 @@ export default function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="courses" element={<AdminCourses />} />
+            <Route path="recipes" element={<AdminRecipes />} />
             <Route path="slots" element={<AdminSlots />} />
             <Route path="bookings" element={<AdminBookings />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>

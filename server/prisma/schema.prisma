@@ -30,6 +30,25 @@ model Course {
   active        Boolean    @default(true)
   createdAt     DateTime   @default(now())
   slots         TimeSlot[]
+  recipes       Recipe[]
+}
+
+model Recipe {
+  id            String   @id @default(cuid())
+  titleEn       String
+  titleHe       String
+  descriptionEn String
+  descriptionHe String
+  ingredientsEn String
+  ingredientsHe String
+  stepsEn       String
+  stepsHe       String
+  imageUrl      String?
+  color         String   @default("amber")
+  active        Boolean  @default(true)
+  courseId      String?
+  course        Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
 }
 
 model TimeSlot {

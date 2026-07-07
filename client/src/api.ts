@@ -50,6 +50,23 @@ export interface Course {
   _count?: { slots: number };
 }
 
+export interface Recipe {
+  id: string;
+  titleEn: string;
+  titleHe: string;
+  descriptionEn: string;
+  descriptionHe: string;
+  ingredientsEn: string;
+  ingredientsHe: string;
+  stepsEn: string;
+  stepsHe: string;
+  imageUrl?: string | null;
+  color: string;
+  active: boolean;
+  courseId?: string | null;
+  course?: { id: string; titleEn: string; titleHe: string } | null;
+}
+
 export interface Slot {
   id: string;
   courseId: string;

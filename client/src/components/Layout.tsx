@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth";
+import logo from "../assets/logo.png";
 import { useI18n } from "../i18n";
 import { siteConfig } from "../site";
 
@@ -118,6 +119,8 @@ export default function Layout() {
 
   const isCoursesActive =
     location.pathname === "/" || location.pathname.startsWith("/courses/");
+  const isRecipesActive =
+    location.pathname === "/recipes" || location.pathname.startsWith("/recipes/");
 
   const langButton = (className = "") => (
     <button
@@ -135,19 +138,26 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-stone-200 bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+      <header className="sticky top-0 z-40 overflow-visible border-b border-stone-200 bg-paper/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
           <Link
             to="/"
-            className="min-w-0 font-display text-xl font-semibold tracking-wide text-ink transition-colors hover:text-clay-800 sm:text-2xl"
+            className="flex h-8 shrink-0 items-center transition-opacity hover:opacity-80"
           >
-            {t("appName")}
+            <img
+              src={logo}
+              alt={t("appName")}
+              className="h-8 w-auto origin-left scale-[1.75] sm:scale-[2]"
+            />
           </Link>
 
           <div className="hidden items-center gap-6 md:flex md:gap-8">
             <nav className="flex items-center gap-5 lg:gap-6" aria-label="Main">
               <Link to="/" className={navLinkClass(isCoursesActive)}>
                 {t("courses")}
+              </Link>
+              <Link to="/recipes" className={navLinkClass(isRecipesActive)}>
+                {t("recipes")}
               </Link>
               <NavLink to="/about" className={({ isActive }) => navLinkClass(isActive)}>
                 {t("about")}
@@ -187,6 +197,10 @@ export default function Layout() {
           >
             <Link to="/" className={navLinkClass(isCoursesActive, true)}>
               {t("courses")}
+            </Link>
+            <span className="h-3 w-px bg-stone-200" aria-hidden />
+            <Link to="/recipes" className={navLinkClass(isRecipesActive, true)}>
+              {t("recipes")}
             </Link>
             <span className="h-3 w-px bg-stone-200" aria-hidden />
             <NavLink to="/about" className={({ isActive }) => navLinkClass(isActive, true)}>

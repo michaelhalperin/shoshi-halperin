@@ -1,13 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError, type Course, type Slot } from "../../api";
+import { DateTimePicker, toLocalInputValue } from "../../components/DateTimePicker";
 import { Badge, Button, ConfirmModal, ErrorNote, Input, Modal, Select, Spinner } from "../../components/ui";
 import { formatDateTime, formatTime, useI18n } from "../../i18n";
-
-function toLocalInputValue(iso: string) {
-  const d = new Date(iso);
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 16);
-}
 
 export default function AdminSlots() {
   const { t, lang, pick } = useI18n();
@@ -186,19 +181,17 @@ export default function AdminSlots() {
               ))}
             </Select>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Input
+              <DateTimePicker
                 label={t("startTime")}
-                type="datetime-local"
                 required
                 value={form.startsAt}
-                onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+                onChange={(startsAt) => setForm({ ...form, startsAt })}
               />
-              <Input
+              <DateTimePicker
                 label={t("endTime")}
-                type="datetime-local"
                 required
                 value={form.endsAt}
-                onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
+                onChange={(endsAt) => setForm({ ...form, endsAt })}
               />
             </div>
             <Input

@@ -1,5 +1,38 @@
 import { useCallback, useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { Link } from "react-router-dom";
 import { useI18n } from "../i18n";
+
+function CourseLinkIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0" aria-hidden>
+      <path d="M4 19.5A2.5 2.5 0 0 0 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
+export function LinkedCourseLink({
+  courseId,
+  courseTitle,
+  className = "",
+}: {
+  courseId: string;
+  courseTitle: string;
+  className?: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <Link
+      to={`/courses/${courseId}`}
+      className={`inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-clay-600 underline-offset-2 transition-colors hover:text-clay-800 hover:underline ${className}`}
+    >
+      <CourseLinkIcon />
+      <span>
+        {t("linkedCourse")}: {courseTitle}
+      </span>
+    </Link>
+  );
+}
 
 export function Button({
   variant = "primary",
@@ -50,6 +83,110 @@ export function Textarea({ label, className = "", ...props }: TextareaHTMLAttrib
         {...props}
       />
     </label>
+  );
+}
+
+function parseListValue(value: string): string[] {
+  if (!value.trim()) return [""];
+  return value.split("\n");
+}
+
+function joinListValue(items: string[]): string {
+  return items.join("\n");
+}
+
+export function ListEditor({
+  label,
+  value,
+  onChange,
+  variant = "bullet",
+  placeholder,
+  addLabel,
+  removeLabel,
+  dir,
+  className = "",
+}: {
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+  variant?: "bullet" | "numbered";
+  placeholder?: string;
+  addLabel: string;
+  removeLabel: string;
+  dir?: "rtl" | "ltr";
+  className?: string;
+}) {
+  const items = parseListValue(value);
+
+  const updateItem = (index: number, text: string) => {
+    const next = [...items];
+    next[index] = text;
+    onChange(joinListValue(next));
+  };
+
+  const removeItem = (index: number) => {
+    const next = items.filter((_, i) => i !== index);
+    onChange(joinListValue(next.length > 0 ? next : [""]));
+  };
+
+  const addItem = () => {
+    onChange(joinListValue([...items, ""]));
+  };
+
+  return (
+    <div className={`block ${className}`}>
+      {label && (
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+          {label}
+        </span>
+      )}
+      <ul className="space-y-2">
+        {items.map((item, index) => (
+          <li key={index} className="flex items-center gap-2">
+            {variant === "numbered" ? (
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-clay-100 text-xs font-semibold text-clay-700">
+                {index + 1}
+              </span>
+            ) : (
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-clay-500" aria-hidden />
+            )}
+            <input
+              type="text"
+              dir={dir}
+              value={item}
+              placeholder={placeholder}
+              onChange={(e) => updateItem(index, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (index === items.length - 1) addItem();
+                }
+              }}
+              className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors placeholder:text-stone-400 focus:border-ink"
+            />
+            <button
+              type="button"
+              onClick={() => removeItem(index)}
+              disabled={items.length === 1 && !item.trim()}
+              className="shrink-0 p-1 text-stone-400 transition-colors hover:text-red-600 disabled:invisible"
+              aria-label={removeLabel}
+            >
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                <circle cx="10" cy="10" r="7" />
+                <path d="M7 10h6" strokeLinecap="round" />
+              </svg>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={addItem}
+        className="mt-3 text-[13px] font-semibold uppercase tracking-[0.1em] text-clay-600 transition-colors hover:text-clay-800"
+      >
+        + {addLabel}
+      </button>
+    </div>
   );
 }
 

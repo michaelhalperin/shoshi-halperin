@@ -8,12 +8,13 @@ adminRouter.use(requireAdmin);
 
 adminRouter.get("/stats", async (_req, res) => {
   const now = new Date();
-  const [courses, upcoming, totalBookings] = await Promise.all([
+  const [courses, recipes, upcoming, totalBookings] = await Promise.all([
     prisma.course.count({ where: { active: true } }),
+    prisma.recipe.count({ where: { active: true } }),
     prisma.booking.count({ where: { status: "confirmed", slot: { startsAt: { gte: now } } } }),
     prisma.booking.count({ where: { status: "confirmed" } }),
   ]);
-  res.json({ stats: { courses, upcoming, totalBookings } });
+  res.json({ stats: { courses, recipes, upcoming, totalBookings } });
 });
 
 adminRouter.get("/bookings", async (_req, res) => {

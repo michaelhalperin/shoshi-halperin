@@ -5,6 +5,7 @@ import { formatDateTime, useI18n } from "../../i18n";
 
 interface Stats {
   courses: number;
+  recipes: number;
   upcoming: number;
   totalBookings: number;
 }
@@ -23,6 +24,7 @@ export default function Dashboard() {
 
   const cards = [
     { label: t("statCourses"), value: stats.courses },
+    { label: t("statRecipes"), value: stats.recipes },
     { label: t("statUpcoming"), value: stats.upcoming },
     { label: t("statTotal"), value: stats.totalBookings },
   ];
@@ -35,7 +37,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="mb-10 grid grid-cols-3 gap-3">
+      <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {cards.map((c) => (
           <Card key={c.label} className="text-center">
             <div className="font-display text-4xl font-semibold text-clay-700">{c.value}</div>
