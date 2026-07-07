@@ -167,3 +167,51 @@ button:disabled {
     animation: none;
   }
 }
+
+.home-courses-transition {
+  view-transition-name: home-courses;
+}
+
+@keyframes home-courses-out {
+  to {
+    opacity: 0;
+    transform: translateY(0.2rem);
+  }
+}
+
+@keyframes home-courses-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(home-courses) {
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(home-courses) {
+  animation: home-courses-out 160ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(home-courses) {
+  animation: home-courses-in 360ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-courses-transition {
+    view-transition-name: none;
+  }
+
+  ::view-transition-group(home-courses),
+  ::view-transition-old(home-courses),
+  ::view-transition-new(home-courses) {
+    animation: none !important;
+  }
+}

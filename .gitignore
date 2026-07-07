@@ -4,6 +4,10 @@ node_modules/
 # Build output
 dist/
 build/
+
+# Self-hosted fonts (generated from @fontsource on install/build)
+client/public/fonts/
+client/src/fonts.css
 *.tsbuildinfo
 
 # Environment (keep *.example files)
