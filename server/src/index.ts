@@ -7,6 +7,7 @@ import { authRouter } from "./routes/auth.js";
 import { bookingsRouter } from "./routes/bookings.js";
 import { couponsRouter } from "./routes/coupons.js";
 import { coursesRouter } from "./routes/courses.js";
+import { aboutRouter } from "./routes/about.js";
 import { galleryRouter } from "./routes/gallery.js";
 import { recipesRouter } from "./routes/recipes.js";
 import { slotsRouter } from "./routes/slots.js";
@@ -43,6 +44,7 @@ app.use("/api/recipes", recipesRouter);
 app.use("/api/slots", slotsRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/coupons", couponsRouter);
+app.use("/api/about", aboutRouter);
 app.use("/api/gallery", galleryRouter);
 app.use("/api/admin", adminRouter);
 

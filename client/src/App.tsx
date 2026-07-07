@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth";
 import Layout from "./components/Layout";
 import { Spinner } from "./components/ui";
+import AdminAbout from "./pages/admin/AdminAbout";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminCourses from "./pages/admin/AdminCourses";
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="courses" element={<AdminCourses />} />
             <Route path="recipes" element={<AdminRecipes />} />
             <Route path="gallery" element={<AdminGallery />} />
+            <Route path="about" element={<AdminAbout />} />
             <Route path="slots" element={<AdminSlots />} />
             <Route path="bookings" element={<AdminBookings />} />
             <Route path="coupons" element={<AdminCoupons />} />

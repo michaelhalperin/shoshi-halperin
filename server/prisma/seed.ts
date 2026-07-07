@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { seedAboutContent } from "../src/about.js";
 
 const prisma = new PrismaClient();
 
@@ -149,6 +150,9 @@ async function main() {
     await Promise.all(recipeSeedData.map((data) => prisma.recipe.create({ data })));
     console.log(`Seeded ${recipeSeedData.length} recipes.`);
   }
+
+  await seedAboutContent();
+  console.log("About page content ready.");
 }
 
 main()

@@ -19,16 +19,6 @@ const socialItems = [
     ),
   },
   {
-    key: "facebook" as const,
-    label: "Facebook",
-    href: siteConfig.social.facebook,
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-        <path d="M14 8.5V7.2c0-.7.5-1.2 1.2-1.2H17V3h-2.4C12.8 3 11 4.8 11 7.2V8.5H9v3h2V21h3v-9.5h2.6l.4-3H14z" />
-      </svg>
-    ),
-  },
-  {
     key: "whatsapp" as const,
     label: "WhatsApp",
     href: siteConfig.social.whatsapp,

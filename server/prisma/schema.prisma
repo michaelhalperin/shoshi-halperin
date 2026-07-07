@@ -93,3 +93,14 @@ model Booking {
   discountAmount Float?
   createdAt      DateTime @default(now())
 }
+
+model AboutContent {
+  id           String   @id @default("default")
+  titleEn      String
+  titleHe      String
+  introEn      String
+  introHe      String
+  paragraphsEn Json
+  paragraphsHe Json
+  updatedAt    DateTime @updatedAt
+}

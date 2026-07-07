@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { requireAdmin } from "../auth.js";
+import { getAboutContent, saveAboutContent } from "../about.js";
 import { prisma } from "../prisma.js";
-import { deleteImage, isS3Configured } from "../s3.js";
+import { deleteImage, isS3Configured, listImages } from "../s3.js";
+import { aboutContentSchema } from "./about.js";
 import { uploadsRouter } from "./uploads.js";
 
 export const adminRouter = Router();
@@ -21,6 +23,51 @@ adminRouter.delete("/gallery", async (req, res) => {
 
   try {
     await deleteImage(key, "gallery");
+    res.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Delete failed";
+    res.status(400).json({ error: message });
+  }
+});
+
+adminRouter.get("/about", async (_req, res) => {
+  try {
+    const content = await getAboutContent();
+    const images = isS3Configured() ? await listImages("about") : [];
+    res.json({ content, images });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load about page" });
+  }
+});
+
+adminRouter.put("/about", async (req, res) => {
+  const parsed = aboutContentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid input" });
+  }
+
+  try {
+    const content = await saveAboutContent(parsed.data);
+    res.json({ content });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save about page" });
+  }
+});
+
+adminRouter.delete("/about", async (req, res) => {
+  if (!isS3Configured()) {
+    return res.status(503).json({ error: "Image storage is not configured" });
+  }
+
+  const key = typeof req.query.key === "string" ? req.query.key : "";
+  if (!key) {
+    return res.status(400).json({ error: "Missing image key" });
+  }
+
+  try {
+    await deleteImage(key, "about");
     res.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Delete failed";

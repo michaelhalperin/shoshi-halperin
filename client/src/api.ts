@@ -137,3 +137,14 @@ export interface GalleryImage {
 }
 
 export type UploadFolder = "courses" | "recipes" | "gallery" | "about";
+
+export interface AboutContent {
+  id: string;
+  titleEn: string;
+  titleHe: string;
+  introEn: string;
+  introHe: string;
+  paragraphsEn: string[];
+  paragraphsHe: string[];
+  updatedAt?: string;
+}

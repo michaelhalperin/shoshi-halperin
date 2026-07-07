@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { isS3Configured, MAX_UPLOAD_SIZE, UPLOAD_FOLDERS, uploadFile, type UploadFolder } from "../s3.js";
+import { isS3Configured, MAX_UPLOAD_SIZE, UPLOAD_FOLDERS, deleteImage, listImages, uploadFile, type UploadFolder } from "../s3.js";
 
 export const uploadsRouter = Router();
 
@@ -35,6 +35,16 @@ uploadsRouter.post("/upload", (req, res, next) => {
 
   try {
     const result = await uploadFile(folder as UploadFolder, req.file);
+
+    if (folder === "about") {
+      const existing = await listImages("about");
+      await Promise.all(
+        existing
+          .filter((image) => image.key !== result.key)
+          .map((image) => deleteImage(image.key, "about"))
+      );
+    }
+
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";
