@@ -1,15 +1,47 @@
 import { Router } from "express";
+import { z } from "zod";
 import { requireAdmin } from "../auth.js";
 import { getAboutContent, saveAboutContent } from "../about.js";
+import { removeFromGalleryOrder, saveGalleryOrderKeys } from "../gallery.js";
 import { prisma } from "../prisma.js";
 import { deleteImage, isS3Configured, listImages } from "../s3.js";
 import { aboutContentSchema } from "./about.js";
 import { uploadsRouter } from "./uploads.js";
 
+const galleryOrderSchema = z.object({
+  keys: z.array(z.string().min(1)),
+});
+
 export const adminRouter = Router();
 
 adminRouter.use(requireAdmin);
 adminRouter.use(uploadsRouter);
+
+adminRouter.put("/gallery/order", async (req, res) => {
+  const parsed = galleryOrderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid input" });
+  }
+
+  if (!isS3Configured()) {
+    return res.status(503).json({ error: "Image storage is not configured" });
+  }
+
+  try {
+    const images = await listImages("gallery");
+    const validKeys = new Set(images.map((image) => image.key));
+    const uniqueKeys = [...new Set(parsed.data.keys)];
+    if (!uniqueKeys.every((key) => validKeys.has(key))) {
+      return res.status(400).json({ error: "Invalid gallery item key" });
+    }
+
+    const keys = await saveGalleryOrderKeys(uniqueKeys);
+    res.json({ keys });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save gallery order" });
+  }
+});
 
 adminRouter.delete("/gallery", async (req, res) => {
   if (!isS3Configured()) {
@@ -23,6 +55,7 @@ adminRouter.delete("/gallery", async (req, res) => {
 
   try {
     await deleteImage(key, "gallery");
+    await removeFromGalleryOrder(key);
     res.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Delete failed";

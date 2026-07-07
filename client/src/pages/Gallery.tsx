@@ -104,7 +104,7 @@ export default function Gallery() {
         <h1 className="mb-6 font-display text-5xl font-medium leading-[1.08] text-ink sm:text-6xl">
           {t("galleryTitle")}
         </h1>
-        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-stone-500">
+        <p className="mx-auto text-lg font-light leading-relaxed text-stone-500">
           {t("galleryHero")}
         </p>
         <OrnamentalDivider className="mt-10" />

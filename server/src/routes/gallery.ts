@@ -1,15 +1,11 @@
 import { Router } from "express";
-import { isS3Configured, listImages } from "../s3.js";
+import { listGalleryItems } from "../gallery.js";
 
 export const galleryRouter = Router();
 
 galleryRouter.get("/", async (_req, res) => {
-  if (!isS3Configured()) {
-    return res.json({ images: [] });
-  }
-
   try {
-    const images = await listImages("gallery");
+    const images = await listGalleryItems();
     res.json({ images });
   } catch (err) {
     console.error(err);

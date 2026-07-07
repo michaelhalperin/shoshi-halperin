@@ -104,3 +104,9 @@ model AboutContent {
   paragraphsHe Json
   updatedAt    DateTime @updatedAt
 }
+
+model GalleryOrder {
+  id        String   @id @default("default")
+  keys      Json
+  updatedAt DateTime @updatedAt
+}
