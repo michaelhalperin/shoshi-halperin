@@ -44,7 +44,9 @@ Change this password before going live (edit `server/prisma/seed.ts` and reseed)
 **Admin side** (`/admin`)
 
 - Dashboard with stats and upcoming appointments
-- Courses: create / edit / hide / delete (English + Hebrew fields, price, duration, photo URL, card color)
+- Courses: create / edit / hide / delete (English + Hebrew fields, price, duration, photo upload, card color)
+- Recipes: create / edit / hide / delete with photo upload
+- Gallery: upload / delete photos (stored in S3, shown on `/gallery`)
 - Time slots: create / edit / delete, per-slot capacity, filter by course
 - Bookings: view all with visitor contact details, cancel
 
@@ -97,5 +99,10 @@ The build runs migrations (`db push`) and seeds sample data on each deploy. Chan
 | `CLIENT_URL` | Render | Allowed CORS origin(s), comma-separated |
 | `NODE_ENV` | Render | Set to `production` in `render.yaml` |
 | `VITE_API_URL` | Vercel | Render API base URL for the React app |
+| `AWS_REGION` | Render | S3 bucket region (e.g. `eu-north-1`) |
+| `AWS_S3_BUCKET` | Render | S3 bucket name |
+| `AWS_S3_PUBLIC_URL` | Render | Public base URL for uploaded images |
+| `AWS_ACCESS_KEY_ID` | Render | IAM user access key for S3 uploads |
+| `AWS_SECRET_ACCESS_KEY` | Render | IAM user secret key for S3 uploads |
 
 Local copies: `server/.env.example`, `client/.env.example`.

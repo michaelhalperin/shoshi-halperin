@@ -5,6 +5,7 @@ import {
   Button,
   CourseImage,
   ErrorNote,
+  ImageUpload,
   Input,
   ConfirmModal,
   Modal,
@@ -198,12 +199,12 @@ export default function AdminCourses() {
               value={form.descriptionHe}
               onChange={(e) => setForm({ ...form, descriptionHe: e.target.value })}
             />
-            <Input
-              label={t("imageUrl")}
-              type="url"
-              placeholder="https://…"
+            <ImageUpload
+              label={t("image")}
+              folder="courses"
               value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+              onChange={(imageUrl) => setForm({ ...form, imageUrl })}
+              color={form.color}
             />
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
               <Input

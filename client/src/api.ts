@@ -26,6 +26,20 @@ export const api = {
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  upload: async <T>(path: string, formData: FormData) => {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(res.status, data.error ?? "Upload failed");
+    return data as T;
+  },
+  deleteWithQuery: <T>(path: string, params: Record<string, string>) => {
+    const query = new URLSearchParams(params).toString();
+    return request<T>(`${path}?${query}`, { method: "DELETE" });
+  },
 };
 
 export interface User {
@@ -86,3 +100,11 @@ export interface Booking {
   email?: string | null;
   slot: Slot & { course: Course };
 }
+
+export interface GalleryImage {
+  key: string;
+  url: string;
+  lastModified: string | null;
+}
+
+export type UploadFolder = "courses" | "recipes" | "gallery" | "about";

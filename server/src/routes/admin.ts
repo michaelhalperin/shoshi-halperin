@@ -1,10 +1,32 @@
 import { Router } from "express";
 import { requireAdmin } from "../auth.js";
 import { prisma } from "../prisma.js";
+import { deleteImage, isS3Configured } from "../s3.js";
+import { uploadsRouter } from "./uploads.js";
 
 export const adminRouter = Router();
 
 adminRouter.use(requireAdmin);
+adminRouter.use(uploadsRouter);
+
+adminRouter.delete("/gallery", async (req, res) => {
+  if (!isS3Configured()) {
+    return res.status(503).json({ error: "Image storage is not configured" });
+  }
+
+  const key = typeof req.query.key === "string" ? req.query.key : "";
+  if (!key) {
+    return res.status(400).json({ error: "Missing image key" });
+  }
+
+  try {
+    await deleteImage(key, "gallery");
+    res.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Delete failed";
+    res.status(400).json({ error: message });
+  }
+});
 
 adminRouter.get("/stats", async (_req, res) => {
   const now = new Date();

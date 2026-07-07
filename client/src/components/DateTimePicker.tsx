@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { formatDateTime, useI18n, type Lang } from "../i18n";
 
@@ -70,6 +70,21 @@ function CalendarIcon() {
   );
 }
 
+function useIsMobilePicker() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const onChange = () => setIsMobile(media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  return isMobile;
+}
+
 export function DateTimePicker({
   label,
   value,
@@ -88,6 +103,7 @@ export function DateTimePicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobilePicker();
   const [open, setOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
 
@@ -103,7 +119,7 @@ export function DateTimePicker({
   }, [open, value]);
 
   useEffect(() => {
-    if (!open || !triggerRef.current) return;
+    if (!open || isMobile || !triggerRef.current) return;
 
     const updatePosition = () => {
       const trigger = triggerRef.current;
@@ -111,19 +127,30 @@ export function DateTimePicker({
       if (!trigger) return;
 
       const rect = trigger.getBoundingClientRect();
-      const panelWidth = Math.min(288, window.innerWidth - 32);
-      const panelHeight = panel?.offsetHeight ?? 340;
+      const panelWidth = Math.min(320, window.innerWidth - 32);
+      const panelHeight = panel?.offsetHeight ?? 380;
+      const margin = 16;
       const spaceBelow = window.innerHeight - rect.bottom;
-      const openUp = spaceBelow < panelHeight + 12 && rect.top > panelHeight + 12;
-      const left = Math.min(Math.max(16, rect.left), window.innerWidth - panelWidth - 16);
+      const openUp = spaceBelow < panelHeight + margin && rect.top > panelHeight + margin;
+      const left = Math.min(Math.max(margin, rect.left), window.innerWidth - panelWidth - margin);
+
+      let top = openUp ? rect.top - margin : rect.bottom + margin;
+      if (openUp) {
+        top = Math.max(margin, rect.top - margin);
+      } else {
+        top = Math.min(top, window.innerHeight - panelHeight - margin);
+        top = Math.max(margin, top);
+      }
 
       setPanelStyle({
         position: "fixed",
         left,
         width: panelWidth,
-        top: openUp ? rect.top - 8 : rect.bottom + 8,
+        top,
+        maxHeight: `min(380px, calc(100dvh - ${margin * 2}px))`,
+        overflowY: "auto",
         transform: openUp ? "translateY(-100%)" : undefined,
-        zIndex: 100,
+        zIndex: 70,
       });
     };
 
@@ -137,7 +164,7 @@ export function DateTimePicker({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [open, viewMonth, viewYear]);
+  }, [open, isMobile, viewMonth, viewYear]);
 
   useEffect(() => {
     if (!open) return;
@@ -192,6 +219,110 @@ export function DateTimePicker({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const panelContent = (
+    <>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => shiftMonth(-1)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink"
+          aria-label={t("prevMonth")}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+            <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <span className="font-display text-lg font-semibold text-ink">{monthLabel(viewYear, viewMonth, lang)}</span>
+        <button
+          type="button"
+          onClick={() => shiftMonth(1)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink"
+          aria-label={t("nextMonth")}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+            <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="mb-1 grid grid-cols-7 gap-1">
+        {weekdays.map((name) => (
+          <span
+            key={name}
+            className="py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-stone-400"
+          >
+            {name}
+          </span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day, index) => {
+          if (!day) return <span key={`empty-${index}`} />;
+          const dayStart = new Date(day);
+          dayStart.setHours(0, 0, 0, 0);
+          const isSelected =
+            current &&
+            day.getFullYear() === current.getFullYear() &&
+            day.getMonth() === current.getMonth() &&
+            day.getDate() === current.getDate();
+          const isToday = dayStart.getTime() === today.getTime();
+          return (
+            <button
+              key={day.toISOString()}
+              type="button"
+              onClick={() => setDatePart(day.getFullYear(), day.getMonth(), day.getDate())}
+              className={`flex h-9 w-full items-center justify-center rounded-full text-sm transition-colors ${
+                isSelected
+                  ? "bg-ink font-semibold text-paper"
+                  : isToday
+                    ? "font-semibold text-clay-700 ring-1 ring-clay-300 hover:bg-clay-50"
+                    : "text-ink hover:bg-stone-100"
+              }`}
+            >
+              {day.getDate()}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 border-t border-stone-200 pt-4">
+        <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+          {t("pickTime")}
+        </span>
+        <div className="flex items-center gap-2">
+          <select
+            value={hours}
+            onChange={(e) => setTimePart(Number(e.target.value), minutes)}
+            className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors focus:border-ink"
+            aria-label={t("pickTime")}
+          >
+            {Array.from({ length: 24 }, (_, hour) => (
+              <option key={hour} value={hour}>
+                {pad(hour)}
+              </option>
+            ))}
+          </select>
+          <span className="text-stone-400">:</span>
+          <select
+            value={minutes}
+            onChange={(e) => setTimePart(hours, Number(e.target.value))}
+            className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors focus:border-ink"
+            aria-label={t("pickTime")}
+          >
+            {Array.from({ length: 60 }, (_, minute) => (
+              <option key={minute} value={minute}>
+                {pad(minute)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderPortal = (children: ReactNode) => createPortal(children, document.body);
+
   return (
     <div ref={rootRef} className={`relative block ${className}`}>
       {label && (
@@ -229,114 +360,59 @@ export function DateTimePicker({
       />
 
       {open &&
-        createPortal(
-          <div
-            ref={panelRef}
-            role="dialog"
-            aria-labelledby={id}
-            style={panelStyle}
-            className="datepicker-panel-in border border-stone-200 bg-paper p-4 shadow-lg shadow-ink/10"
-          >
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => shiftMonth(-1)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink"
-                aria-label={t("prevMonth")}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-                  <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <span className="font-display text-lg font-semibold text-ink">{monthLabel(viewYear, viewMonth, lang)}</span>
-              <button
-                type="button"
-                onClick={() => shiftMonth(1)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink"
-                aria-label={t("nextMonth")}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-                  <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="mb-1 grid grid-cols-7 gap-1">
-              {weekdays.map((name) => (
-                <span
-                  key={name}
-                  className="py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-stone-400"
+        (isMobile
+          ? renderPortal(
+              <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/50 backdrop-blur-[2px] datepicker-panel-in">
+                <button
+                  type="button"
+                  className="absolute inset-0"
+                  aria-label={t("cancel")}
+                  onClick={() => setOpen(false)}
+                />
+                <div
+                  ref={panelRef}
+                  role="dialog"
+                  aria-labelledby={id}
+                  className="relative z-[1] max-h-[min(88dvh,100%)] w-full overflow-y-auto overscroll-contain rounded-t-2xl border-t border-stone-200 bg-paper px-4 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(33,29,25,0.12)]"
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  {name}
-                </span>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-1">
-              {days.map((day, index) => {
-                if (!day) return <span key={`empty-${index}`} />;
-                const dayStart = new Date(day);
-                dayStart.setHours(0, 0, 0, 0);
-                const isSelected =
-                  current &&
-                  day.getFullYear() === current.getFullYear() &&
-                  day.getMonth() === current.getMonth() &&
-                  day.getDate() === current.getDate();
-                const isToday = dayStart.getTime() === today.getTime();
-                return (
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h2 className="font-display text-xl font-semibold text-ink">
+                      {label ?? t("dateTimePlaceholder")}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setOpen(false)}
+                      className="-me-1 p-2 text-stone-400 transition-colors hover:text-ink"
+                      aria-label={t("cancel")}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                        <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                  {panelContent}
                   <button
-                    key={day.toISOString()}
                     type="button"
-                    onClick={() => setDatePart(day.getFullYear(), day.getMonth(), day.getDate())}
-                    className={`flex h-9 w-full items-center justify-center rounded-full text-sm transition-colors ${
-                      isSelected
-                        ? "bg-ink font-semibold text-paper"
-                        : isToday
-                          ? "font-semibold text-clay-700 ring-1 ring-clay-300 hover:bg-clay-50"
-                          : "text-ink hover:bg-stone-100"
-                    }`}
+                    onClick={() => setOpen(false)}
+                    className="mt-5 w-full rounded-full bg-ink px-5 py-2.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-paper transition-colors hover:bg-clay-700"
                   >
-                    {day.getDate()}
+                    {t("save")}
                   </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 border-t border-stone-200 pt-4">
-              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                {t("pickTime")}
-              </span>
-              <div className="flex items-center gap-2">
-                <select
-                  value={hours}
-                  onChange={(e) => setTimePart(Number(e.target.value), minutes)}
-                  className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors focus:border-ink"
-                  aria-label={t("pickTime")}
-                >
-                  {Array.from({ length: 24 }, (_, hour) => (
-                    <option key={hour} value={hour}>
-                      {pad(hour)}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-stone-400">:</span>
-                <select
-                  value={minutes}
-                  onChange={(e) => setTimePart(hours, Number(e.target.value))}
-                  className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors focus:border-ink"
-                  aria-label={t("pickTime")}
-                >
-                  {Array.from({ length: 60 }, (_, minute) => (
-                    <option key={minute} value={minute}>
-                      {pad(minute)}
-                    </option>
-                  ))}
-                </select>
+                </div>
               </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+            )
+          : renderPortal(
+              <div
+                ref={panelRef}
+                role="dialog"
+                aria-labelledby={id}
+                style={panelStyle}
+                className="datepicker-panel-in border border-stone-200 bg-paper p-4 shadow-lg shadow-ink/10"
+              >
+                {panelContent}
+              </div>
+            ))}
     </div>
   );
 }

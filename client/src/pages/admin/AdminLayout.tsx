@@ -8,6 +8,7 @@ export default function AdminLayout() {
     { to: "/admin", label: t("dashboard"), end: true },
     { to: "/admin/courses", label: t("manageCourses") },
     { to: "/admin/recipes", label: t("manageRecipes") },
+    { to: "/admin/gallery", label: t("manageGallery") },
     { to: "/admin/slots", label: t("manageSlots") },
     { to: "/admin/bookings", label: t("manageBookings") },
   ];

@@ -1,6 +1,22 @@
 import { useCallback, useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
+import { api, ApiError } from "../api";
 import { useI18n } from "../i18n";
+
+let openModalCount = 0;
+
+function lockBodyScroll() {
+  openModalCount += 1;
+  document.body.style.overflow = "hidden";
+}
+
+function unlockBodyScroll() {
+  openModalCount = Math.max(0, openModalCount - 1);
+  if (openModalCount === 0) {
+    document.body.style.overflow = "";
+  }
+}
 
 function CourseLinkIcon() {
   return (
@@ -66,6 +82,110 @@ export function Input({ label, className = "", ...props }: InputHTMLAttributes<H
         {...props}
       />
     </label>
+  );
+}
+
+export function ImageUpload({
+  label,
+  folder,
+  value,
+  onChange,
+  color = "amber",
+}: {
+  label: string;
+  folder: "courses" | "recipes" | "gallery" | "about";
+  value: string;
+  onChange: (url: string) => void;
+  color?: string;
+}) {
+  const { t } = useI18n();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(false);
+
+  const upload = async (file: File) => {
+    setError("");
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", folder);
+      const result = await api.upload<{ url: string }>("/api/admin/upload", formData);
+      onChange(result.url);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("errorGeneric"));
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+        {label}
+      </span>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <CourseImage
+          imageUrl={value || null}
+          color={color}
+          alt=""
+          className="mx-auto h-24 w-full max-w-[8rem] sm:mx-0 sm:w-32 sm:max-w-none"
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void upload(file);
+            }}
+          />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={uploading}
+              className="w-full sm:w-auto sm:shrink-0"
+              onClick={() => inputRef.current?.click()}
+            >
+              {uploading ? t("uploading") : value ? t("replaceImage") : t("uploadImage")}
+            </Button>
+            {value && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={uploading}
+                className="w-full sm:w-auto sm:shrink-0"
+                onClick={() => setConfirmRemove(true)}
+              >
+                {t("removeImage")}
+              </Button>
+            )}
+          </div>
+          {value && (
+            <p className="break-all text-xs font-light text-stone-400">{value}</p>
+          )}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+      </div>
+
+      {confirmRemove && (
+        <ConfirmModal
+          title={t("removeImage")}
+          message={t("confirmRemoveImage")}
+          confirmLabel={t("removeImage")}
+          onClose={() => setConfirmRemove(false)}
+          onConfirm={() => {
+            onChange("");
+            setConfirmRemove(false);
+          }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -294,18 +414,18 @@ export function ConfirmModal({
 }) {
   const { t } = useI18n();
   return (
-    <Modal title={title} onClose={onClose} disableClose={busy}>
-      <p className="font-light text-stone-600">{message}</p>
+    <Modal title={title} onClose={onClose} disableClose={busy} stacked>
+      <p className="font-light leading-relaxed text-stone-600">{message}</p>
       {error && (
         <div className="mt-4">
           <ErrorNote message={error} />
         </div>
       )}
-      <div className="mt-6 flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
+      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="ghost" onClick={onClose} disabled={busy} className="w-full sm:w-auto">
           {t("cancel")}
         </Button>
-        <Button type="button" variant="danger" onClick={onConfirm} disabled={busy}>
+        <Button type="button" variant="danger" onClick={onConfirm} disabled={busy} className="w-full sm:w-auto">
           {confirmLabel ?? t("delete")}
         </Button>
       </div>
@@ -318,11 +438,13 @@ export function Modal({
   onClose,
   children,
   disableClose = false,
+  stacked = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   disableClose?: boolean;
+  stacked?: boolean;
 }) {
   const [closing, setClosing] = useState(false);
   const closingRef = useRef(false);
@@ -345,8 +467,7 @@ export function Modal({
   }, []);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") requestClose();
@@ -354,34 +475,35 @@ export function Modal({
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlockBodyScroll();
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [requestClose]);
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-4 ${
-        closing ? "modal-backdrop-out" : "modal-backdrop-in"
-      }`}
+      className={`fixed inset-0 flex items-end justify-center bg-ink/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-4 ${
+        stacked ? "z-[60]" : "z-50"
+      } ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
       onClick={requestClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={`max-h-[92vh] w-full overflow-y-auto bg-paper p-6 sm:max-w-lg sm:p-8 ${
+        className={`max-h-[min(92dvh,100%)] w-full overflow-y-auto overscroll-contain rounded-t-2xl bg-paper px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(33,29,25,0.12)] sm:max-w-lg sm:rounded-none sm:px-8 sm:pt-8 sm:pb-8 sm:shadow-none ${
           closing ? "modal-panel-out" : "modal-panel-in"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-6 flex items-center justify-between">
-          <h2 id="modal-title" className="font-display text-2xl font-semibold text-ink">
+        <div className="mb-5 flex items-start justify-between gap-3 sm:mb-6">
+          <h2 id="modal-title" className="font-display text-xl font-semibold leading-snug text-ink sm:text-2xl">
             {title}
           </h2>
           <button
+            type="button"
             onClick={requestClose}
-            className="p-1 text-stone-400 transition-colors hover:text-ink"
+            className="-me-1 shrink-0 p-2 text-stone-400 transition-colors hover:text-ink"
             aria-label="Close"
           >
             <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -391,7 +513,8 @@ export function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

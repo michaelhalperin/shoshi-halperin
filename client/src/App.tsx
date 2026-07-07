@@ -5,12 +5,14 @@ import Layout from "./components/Layout";
 import { Spinner } from "./components/ui";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminCourses from "./pages/admin/AdminCourses";
+import AdminGallery from "./pages/admin/AdminGallery";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminRecipes from "./pages/admin/AdminRecipes";
 import AdminSlots from "./pages/admin/AdminSlots";
 import Dashboard from "./pages/admin/Dashboard";
 import About from "./pages/About";
 import CourseDetail from "./pages/CourseDetail";
+import Gallery from "./pages/Gallery";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import RecipeDetail from "./pages/RecipeDetail";
@@ -33,6 +35,7 @@ export default function App() {
           <Route path="/about" element={<About />} />
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/recipes/:id" element={<RecipeDetail />} />
+          <Route path="/gallery" element={<Gallery />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/login" element={<Login />} />
           <Route
@@ -46,6 +49,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="courses" element={<AdminCourses />} />
             <Route path="recipes" element={<AdminRecipes />} />
+            <Route path="gallery" element={<AdminGallery />} />
             <Route path="slots" element={<AdminSlots />} />
             <Route path="bookings" element={<AdminBookings />} />
           </Route>
