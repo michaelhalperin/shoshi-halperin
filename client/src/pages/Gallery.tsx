@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type GalleryImage } from "../api";
 import { OrnamentalDivider, Spinner } from "../components/ui";
+import { VideoThumbnail } from "../components/VideoThumbnail";
 import { useI18n } from "../i18n";
 
 const tileLayouts = [
@@ -16,11 +17,8 @@ function GalleryTile({ item, alt }: { item: GalleryImage; alt: string }) {
   if (item.type === "video") {
     return (
       <>
-        <video
+        <VideoThumbnail
           src={item.url}
-          muted
-          playsInline
-          preload="metadata"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
         />
         <span

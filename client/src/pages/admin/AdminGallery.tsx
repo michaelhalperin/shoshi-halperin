@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { api, ApiError, type GalleryImage } from "../../api";
 import { Button, ConfirmModal, ErrorNote, Spinner } from "../../components/ui";
+import { VideoThumbnail } from "../../components/VideoThumbnail";
 import { useI18n } from "../../i18n";
 
 function reorderItems<T>(items: T[], fromIndex: number, toIndex: number) {
@@ -194,11 +195,8 @@ export default function AdminGallery() {
                 </div>
                 {image.type === "video" ? (
                   <>
-                    <video
+                    <VideoThumbnail
                       src={image.url}
-                      muted
-                      playsInline
-                      preload="metadata"
                       draggable={false}
                       className="pointer-events-none aspect-square w-full object-cover"
                     />
