@@ -104,6 +104,7 @@ export interface Booking {
 export interface GalleryImage {
   key: string;
   url: string;
+  type: "image" | "video";
   lastModified: string | null;
 }
 

@@ -1,18 +1,19 @@
 import { Router } from "express";
 import multer from "multer";
-import { isS3Configured, UPLOAD_FOLDERS, uploadImage, type UploadFolder } from "../s3.js";
+import { isS3Configured, MAX_UPLOAD_SIZE, UPLOAD_FOLDERS, uploadFile, type UploadFolder } from "../s3.js";
 
 export const uploadsRouter = Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  limits: { fileSize: MAX_UPLOAD_SIZE, files: 1 },
 });
 
 uploadsRouter.post("/upload", (req, res, next) => {
   upload.single("file")(req, res, (err) => {
     if (err instanceof multer.MulterError) {
-      const message = err.code === "LIMIT_FILE_SIZE" ? "Image must be 5 MB or smaller" : err.message;
+      const message =
+        err.code === "LIMIT_FILE_SIZE" ? "File must be 100 MB or smaller" : err.message;
       return res.status(400).json({ error: message });
     }
     if (err) return next(err);
@@ -29,11 +30,11 @@ uploadsRouter.post("/upload", (req, res, next) => {
   }
 
   if (!req.file) {
-    return res.status(400).json({ error: "No image file provided" });
+    return res.status(400).json({ error: "No file provided" });
   }
 
   try {
-    const result = await uploadImage(folder as UploadFolder, req.file);
+    const result = await uploadFile(folder as UploadFolder, req.file);
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";

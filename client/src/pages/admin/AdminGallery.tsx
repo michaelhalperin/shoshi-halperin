@@ -81,7 +81,7 @@ export default function AdminGallery() {
             ref={inputRef}
             type="file"
             multiple
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
             className="hidden"
             onChange={(event) => {
               const files = Array.from(event.target.files ?? []);
@@ -110,12 +110,30 @@ export default function AdminGallery() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {images.map((image) => (
             <div key={image.key} className="group relative overflow-hidden border border-stone-200 bg-clay-100">
-              <img
-                src={image.url}
-                alt=""
-                loading="lazy"
-                className="aspect-square w-full object-cover"
-              />
+              {image.type === "video" ? (
+                <>
+                  <video
+                    src={image.url}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="aspect-square w-full object-cover"
+                  />
+                  <span
+                    className="pointer-events-none absolute start-2 top-2 rounded bg-ink/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
+                    aria-hidden
+                  >
+                    {t("galleryVideo")}
+                  </span>
+                </>
+              ) : (
+                <img
+                  src={image.url}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-square w-full object-cover"
+                />
+              )}
               <div className="absolute inset-x-0 bottom-0 flex justify-end bg-gradient-to-t from-ink/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
                 <Button
                   type="button"

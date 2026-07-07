@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type GalleryImage } from "../api";
 import { OrnamentalDivider, Spinner } from "../components/ui";
 import { useI18n } from "../i18n";
@@ -12,10 +12,46 @@ const tileLayouts = [
   "col-span-2 row-span-1",
 ] as const;
 
+function GalleryTile({ item, alt }: { item: GalleryImage; alt: string }) {
+  if (item.type === "video") {
+    return (
+      <>
+        <video
+          src={item.url}
+          muted
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+        />
+        <span
+          className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink/20"
+          aria-hidden
+        >
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-ink shadow-md">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path d="M7 5.5v9l7-4.5-7-4.5z" />
+            </svg>
+          </span>
+        </span>
+      </>
+    );
+  }
+
+  return (
+    <img
+      src={item.url}
+      alt={alt}
+      loading="lazy"
+      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+    />
+  );
+}
+
 export default function Gallery() {
   const { t } = useI18n();
   const [images, setImages] = useState<GalleryImage[] | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     api
@@ -54,10 +90,13 @@ export default function Gallery() {
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
+      videoRef.current?.pause();
     };
   }, [selectedIndex, close, goPrev, goNext]);
 
   const selected = selectedIndex !== null && images ? images[selectedIndex] : null;
+  const selectedAlt =
+    selected?.type === "video" ? t("galleryVideoAlt") : t("galleryImageAlt");
 
   return (
     <div>
@@ -84,11 +123,9 @@ export default function Gallery() {
               onClick={() => setSelectedIndex(index)}
               className={`group relative min-h-0 overflow-hidden border border-stone-200 bg-clay-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-500 ${tileLayouts[index % tileLayouts.length]}`}
             >
-              <img
-                src={image.url}
-                alt={t("galleryImageAlt")}
-                loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+              <GalleryTile
+                item={image}
+                alt={image.type === "video" ? t("galleryVideoAlt") : t("galleryImageAlt")}
               />
               <span
                 className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/35 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
@@ -105,7 +142,7 @@ export default function Gallery() {
           onClick={close}
           role="dialog"
           aria-modal="true"
-          aria-label={t("galleryImageAlt")}
+          aria-label={selectedAlt}
         >
           <button
             type="button"
@@ -149,12 +186,25 @@ export default function Gallery() {
             </>
           )}
 
-          <img
-            src={selected.url}
-            alt={t("galleryImageAlt")}
-            className="max-h-[85vh] max-w-full object-contain"
-            onClick={(event) => event.stopPropagation()}
-          />
+          {selected.type === "video" ? (
+            <video
+              ref={videoRef}
+              key={selected.key}
+              src={selected.url}
+              controls
+              autoPlay
+              playsInline
+              className="max-h-[85vh] max-w-full"
+              onClick={(event) => event.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={selected.url}
+              alt={selectedAlt}
+              className="max-h-[85vh] max-w-full object-contain"
+              onClick={(event) => event.stopPropagation()}
+            />
+          )}
         </div>
       )}
     </div>

@@ -4,8 +4,13 @@ import { randomBytes } from "crypto";
 export const UPLOAD_FOLDERS = ["courses", "recipes", "gallery", "about"] as const;
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
 
-const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
+export const MAX_UPLOAD_SIZE = MAX_VIDEO_SIZE;
+
+export type MediaType = "image" | "video";
 
 const region = process.env.AWS_REGION ?? "eu-north-1";
 const bucket = process.env.AWS_S3_BUCKET ?? "";
@@ -38,12 +43,35 @@ function getClient() {
   return client;
 }
 
+export function mediaTypeFromMime(mime: string): MediaType | null {
+  if (IMAGE_MIME_TYPES.has(mime)) return "image";
+  if (VIDEO_MIME_TYPES.has(mime)) return "video";
+  return null;
+}
+
+export function mediaTypeFromKey(key: string): MediaType {
+  const ext = key.split(".").pop()?.toLowerCase();
+  if (ext === "mp4" || ext === "webm" || ext === "mov") return "video";
+  return "image";
+}
+
 export function validateImageFile(file: Express.Multer.File) {
-  if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
+  if (!IMAGE_MIME_TYPES.has(file.mimetype)) {
     throw new Error("Only JPEG, PNG, WebP, and GIF images are allowed");
   }
-  if (file.size > MAX_FILE_SIZE) {
+  if (file.size > MAX_IMAGE_SIZE) {
     throw new Error("Image must be 5 MB or smaller");
+  }
+}
+
+export function validateGalleryFile(file: Express.Multer.File) {
+  const type = mediaTypeFromMime(file.mimetype);
+  if (!type) {
+    throw new Error("Only JPEG, PNG, WebP, GIF images and MP4, WebM, or MOV videos are allowed");
+  }
+  const maxSize = type === "video" ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+  if (file.size > maxSize) {
+    throw new Error(type === "video" ? "Video must be 100 MB or smaller" : "Image must be 5 MB or smaller");
   }
 }
 
@@ -57,6 +85,12 @@ function extensionForMime(mime: string) {
       return "webp";
     case "image/gif":
       return "gif";
+    case "video/mp4":
+      return "mp4";
+    case "video/webm":
+      return "webm";
+    case "video/quicktime":
+      return "mov";
     default:
       return "bin";
   }
@@ -66,10 +100,15 @@ export function publicUrlForKey(key: string) {
   return `${publicBaseUrl}/${key}`;
 }
 
-export async function uploadImage(folder: UploadFolder, file: Express.Multer.File) {
-  validateImageFile(file);
+export async function uploadFile(folder: UploadFolder, file: Express.Multer.File) {
+  if (folder === "gallery") {
+    validateGalleryFile(file);
+  } else {
+    validateImageFile(file);
+  }
   const ext = extensionForMime(file.mimetype);
   const key = `${folder}/${Date.now()}-${randomBytes(6).toString("hex")}.${ext}`;
+  const type = mediaTypeFromMime(file.mimetype) ?? "image";
 
   await getClient().send(
     new PutObjectCommand({
@@ -81,7 +120,7 @@ export async function uploadImage(folder: UploadFolder, file: Express.Multer.Fil
     })
   );
 
-  return { key, url: publicUrlForKey(key) };
+  return { key, url: publicUrlForKey(key), type };
 }
 
 export async function listImages(folder: UploadFolder) {
@@ -98,6 +137,7 @@ export async function listImages(folder: UploadFolder) {
     .map((item) => ({
       key: item.Key!,
       url: publicUrlForKey(item.Key!),
+      type: mediaTypeFromKey(item.Key!),
       lastModified: item.LastModified?.toISOString() ?? null,
     }))
     .sort((a, b) => (b.lastModified ?? "").localeCompare(a.lastModified ?? ""));
