@@ -76,6 +76,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  mustSetPassword?: boolean;
 }
 
 export interface Course {
@@ -176,4 +177,23 @@ export interface AboutContent {
   paragraphsEn: string[];
   paragraphsHe: string[];
   updatedAt?: string;
+}
+
+export interface ShopLink {
+  id: string;
+  titleEn: string;
+  titleHe: string;
+  categoryEn: string;
+  categoryHe: string;
+  shopName: string;
+  productUrl: string;
+  imageUrl?: string | null;
+  price?: number | null;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign?: string | null;
+  active: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  attributedUrl?: string;
 }

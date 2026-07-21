@@ -1,28 +1,35 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { ADMIN_EMAIL, ADMIN_INITIAL_PASSWORD } from "../src/adminConfig.js";
 import { seedAboutContent } from "../src/about.js";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.user.deleteMany({ where: { email: "admin@example.com" } });
+
+  const passwordHash = await bcrypt.hash(ADMIN_INITIAL_PASSWORD, 10);
+
   const admin = await prisma.user.upsert({
-    where: { email: "admin@example.com" },
-    update: {},
+    where: { email: ADMIN_EMAIL },
+    update: { email: ADMIN_EMAIL, name: "Admin", role: "admin", mustSetPassword: false },
     create: {
-      email: "admin@example.com",
-      passwordHash: await bcrypt.hash("admin123", 10),
+      email: ADMIN_EMAIL,
+      passwordHash,
       name: "Admin",
       role: "admin",
+      mustSetPassword: false,
     },
   });
-  console.log(`Admin user: ${admin.email} (password: admin123)`);
+
+  console.log(`Admin user: ${admin.email} (password: ${ADMIN_INITIAL_PASSWORD})`);
 
   if ((await prisma.course.count()) > 0) {
     console.log("Courses already exist, skipping sample course data.");
   } else {
     const courseSeedData = [
     {
-      titleEn: "Beginner Cooking Workshop",
+      titleEn: "Beginner Cooking Course",
       titleHe: "סדנת בישול למתחילים",
       descriptionEn:
         "Learn the basics of home cooking in a fun, hands-on session. Perfect for beginners — you will leave with three dishes you can make on your own.",
@@ -153,6 +160,124 @@ async function main() {
 
   await seedAboutContent();
   console.log("About page content ready.");
+
+  if ((await prisma.shopLink.count()) === 0) {
+    const categoryEn = "Kitchen Accessories";
+    const categoryHe = "אביזרי מטבח";
+    const shopSeedData = [
+      {
+        titleEn: "Scoopi 6-in-1 Machine — Black",
+        titleHe: "Scoopi 6 ב-1 — צבע שחור",
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%9e%d7%9b%d7%95%d7%a0%d7%aa-%d7%92%d7%9c%d7%99%d7%93%d7%94-%d7%91%d7%a8%d7%93-%d7%95%d7%9e%d7%a9%d7%a7%d7%90%d7%95%d7%aa-%d7%a7%d7%a4%d7%95%d7%90%d7%99%d7%9d-scoopi-%d7%a9%d7%97%d7%95%d7%a8/",
+        imageUrl: "https://batshi-home.co.il/wp-content/uploads/2026/07/0-7.jpg",
+        price: 999,
+        sortOrder: 0,
+      },
+      {
+        titleEn: "Glass Storage Jar 2000ml SEAL IT",
+        titleHe: 'איחסונית זכוכית 2000 מ"ל SEAL IT',
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%90%d7%99%d7%97%d7%a1%d7%95%d7%a0%d7%99%d7%aa-%d7%96%d7%9b%d7%95%d7%9b%d7%99%d7%aa-2000-%d7%9e%d7%9c-%d7%9e%d7%9b%d7%a1%d7%94-%d7%a2%d7%a5-seal-it-%d7%9e%d7%91%d7%99%d7%aa-food-appeal/",
+        imageUrl: "https://batshi-home.co.il/wp-content/uploads/2026/05/2088.jpg",
+        price: 29,
+        sortOrder: 1,
+      },
+      {
+        titleEn: "Glass Storage Jar 2800ml SEAL IT",
+        titleHe: 'איחסונית זכוכית 2800 מ"ל SEAL IT',
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%90%d7%99%d7%97%d7%a1%d7%95%d7%a0%d7%99%d7%aa-%d7%96%d7%9b%d7%95%d7%9b%d7%99%d7%aa-2800-%d7%9e%d7%9c-%d7%9e%d7%9b%d7%a1%d7%94-%d7%a2%d7%a5-seal-it-%d7%9e%d7%91%d7%99%d7%aa-food-appeal/",
+        imageUrl: "https://batshi-home.co.il/wp-content/uploads/2026/05/2800.jpg",
+        price: 39,
+        sortOrder: 2,
+      },
+      {
+        titleEn: "Glass Storage Jar 260ml SEAL IT",
+        titleHe: 'איחסונית זכוכית 260 מ"ל SEAL IT',
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%90%d7%99%d7%97%d7%a1%d7%95%d7%a0%d7%99%d7%aa-%d7%96%d7%9b%d7%95%d7%9b%d7%99%d7%aa-260-%d7%9e%d7%9c-%d7%9e%d7%9b%d7%a1%d7%94-%d7%a2%d7%a5-%d7%9e%d7%aa%d7%91%d7%a8%d7%92-seal-it-%d7%9e%d7%91%d7%99/",
+        imageUrl: "https://batshi-home.co.il/wp-content/uploads/2026/05/260.jpg",
+        price: 15,
+        sortOrder: 3,
+      },
+      {
+        titleEn: "Glass Storage Jar 600ml SEAL IT",
+        titleHe: 'איחסונית זכוכית 600 מ"ל SEAL IT',
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%90%d7%99%d7%97%d7%a1%d7%95%d7%a0%d7%99%d7%aa-%d7%96%d7%9b%d7%95%d7%9b%d7%99%d7%aa-600-%d7%9e%d7%9c-%d7%9e%d7%9b%d7%a1%d7%94-%d7%a2%d7%a5-%d7%9e%d7%aa%d7%91%d7%a8%d7%92-seal-it-%d7%9e%d7%91%d7%99/",
+        imageUrl: "https://batshi-home.co.il/wp-content/uploads/2026/05/0-4.jpg",
+        price: 25,
+        sortOrder: 4,
+      },
+      {
+        titleEn: "Acrylic Organizer with Lid",
+        titleHe: "ארגונית אקריל עם מכסה",
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%90%d7%a8%d7%92%d7%95%d7%a0%d7%99%d7%aa-%d7%90%d7%a7%d7%a8%d7%99%d7%9c-%d7%9e%d7%9b%d7%a1%d7%94-30-30-5-10-5/",
+        imageUrl: "https://batshi-home.co.il/wp-content/uploads/2026/05/5656-1.jpeg",
+        price: 39,
+        sortOrder: 5,
+      },
+      {
+        titleEn: "Acacia Wood Cutting Board",
+        titleHe: "בוצ'ר עץ ACACIA",
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%91%d7%95%d7%a6%d7%a8-%d7%a2%d7%a5-%d7%9c%d7%97%d7%99%d7%aa%d7%95%d7%9a-%d7%94%d7%92%d7%a9%d7%94-%d7%99%d7%95%d7%a7%d7%a8%d7%aa%d7%99-acacia-%d7%9e%d7%91%d7%99%d7%aa-%d7%a4%d7%95%d7%93/",
+        imageUrl:
+          "https://batshi-home.co.il/wp-content/uploads/2026/06/WhatsApp-Image-2026-06-22-at-14.03.00.jpeg",
+        price: 69,
+        sortOrder: 6,
+      },
+      {
+        titleEn: "Solid Birch Wood Cutting Board",
+        titleHe: "בוצ'ר עץ שיטה מלא",
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%91%d7%95%d7%a6%d7%b3%d7%a8-%d7%a2%d7%a5-%d7%a9%d7%99%d7%98%d7%94-%d7%90%d7%9e%d7%99%d7%aa%d7%99-%d7%9e%d7%9c%d7%90-%d7%95%d7%a2%d7%91%d7%94-%d7%91%d7%9e%d7%99%d7%95%d7%97%d7%93-%d7%91%d7%9e%d7%99%d7%95%d7%97%d7%93/",
+        imageUrl:
+          "https://batshi-home.co.il/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-13-at-15.42.16.jpeg",
+        price: 99,
+        sortOrder: 7,
+      },
+      {
+        titleEn: "Hydro Twist Bottle 600ml — Pink",
+        titleHe: 'בקבוק Hydro Twist 600 מ"ל — ורוד',
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%91%d7%a7%d7%91%d7%95%d7%a7-600-%d7%9e%d7%9c-hydro-twist-%d7%a6%d7%91%d7%a2-%d7%95%d7%a8%d7%95%d7%93-smash-by-food-appeal/",
+        imageUrl:
+          "https://batshi-home.co.il/wp-content/uploads/2026/07/7290122470888_1408202514052613031.jpg",
+        price: 10,
+        sortOrder: 8,
+      },
+      {
+        titleEn: "Hydro Twist Bottle 600ml — Mint",
+        titleHe: 'בקבוק Hydro Twist 600 מ"ל — מנטה',
+        productUrl:
+          "https://batshi-home.co.il/product/%d7%91%d7%a7%d7%91%d7%95%d7%a7-600-%d7%9e%d7%9c-hydro-twist-%d7%a6%d7%91%d7%a2-%d7%9e%d7%a0%d7%98%d7%94-%d7%99%d7%a8%d7%95%d7%a7-food-appeal-by-smash/",
+        imageUrl:
+          "https://batshi-home.co.il/wp-content/uploads/2026/07/7290122470895_1408202514023913035.jpg",
+        price: 10,
+        sortOrder: 9,
+      },
+    ];
+
+    await Promise.all(
+      shopSeedData.map((data) =>
+        prisma.shopLink.create({
+          data: {
+            ...data,
+            categoryEn,
+            categoryHe,
+            shopName: "Batshi Home",
+            utmSource: "shoshi_halperin",
+            utmMedium: "referral",
+            utmCampaign: "kitchen_accessories",
+          },
+        })
+      )
+    );
+    console.log(`Seeded ${shopSeedData.length} shop links.`);
+  }
 }
 
 main()

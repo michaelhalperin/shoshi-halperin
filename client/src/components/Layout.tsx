@@ -111,6 +111,7 @@ export default function Layout() {
     location.pathname === "/" || location.pathname.startsWith("/courses/");
   const isRecipesActive =
     location.pathname === "/recipes" || location.pathname.startsWith("/recipes/");
+  const isShopActive = location.pathname === "/shop";
 
   const langButton = (className = "") => (
     <button
@@ -149,6 +150,9 @@ export default function Layout() {
               <Link to="/recipes" className={navLinkClass(isRecipesActive)}>
                 {t("recipes")}
               </Link>
+              <Link to="/shop" className={navLinkClass(isShopActive)}>
+                {t("shop")}
+              </Link>
               <NavLink to="/gallery" className={({ isActive }) => navLinkClass(isActive)}>
                 {t("gallery")}
               </NavLink>
@@ -183,28 +187,32 @@ export default function Layout() {
         {menuVisible && (
           <nav
             id="mobile-nav"
-            className={`flex items-center justify-center overflow-hidden border-t border-stone-200 py-2 md:hidden ${
+            className={`scrollbar-hide flex flex-nowrap items-center gap-0 overflow-x-auto border-t border-stone-200 px-3 py-2 md:hidden ${
               menuClosing ? "mobile-nav-out" : "mobile-nav-in"
             }`}
             aria-label="Main"
           >
-            <Link to="/" className={navLinkClass(isCoursesActive, true)}>
+            <Link to="/" className={`${navLinkClass(isCoursesActive, true)} shrink-0`}>
               {t("courses")}
             </Link>
-            <span className="h-3 w-px bg-stone-200" aria-hidden />
-            <Link to="/recipes" className={navLinkClass(isRecipesActive, true)}>
+            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
+            <Link to="/recipes" className={`${navLinkClass(isRecipesActive, true)} shrink-0`}>
               {t("recipes")}
             </Link>
-            <span className="h-3 w-px bg-stone-200" aria-hidden />
-            <NavLink to="/gallery" className={({ isActive }) => navLinkClass(isActive, true)}>
+            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
+            <Link to="/shop" className={`${navLinkClass(isShopActive, true)} shrink-0`}>
+              {t("shop")}
+            </Link>
+            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
+            <NavLink to="/gallery" className={({ isActive }) => `${navLinkClass(isActive, true)} shrink-0`}>
               {t("gallery")}
             </NavLink>
-            <span className="h-3 w-px bg-stone-200" aria-hidden />
-            <NavLink to="/about" className={({ isActive }) => navLinkClass(isActive, true)}>
+            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
+            <NavLink to="/about" className={({ isActive }) => `${navLinkClass(isActive, true)} shrink-0`}>
               {t("about")}
             </NavLink>
-            <span className="h-3 w-px bg-stone-200" aria-hidden />
-            {langButton("px-3 py-2")}
+            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
+            {langButton("shrink-0 px-3 py-2")}
           </nav>
         )}
       </header>

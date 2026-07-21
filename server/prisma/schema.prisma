@@ -8,12 +8,15 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         String   @default("admin")
-  createdAt    DateTime @default(now())
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  passwordHash         String
+  name                 String
+  role                 String    @default("admin")
+  mustSetPassword      Boolean   @default(false)
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  createdAt            DateTime  @default(now())
 }
 
 model Course {
@@ -109,4 +112,22 @@ model GalleryOrder {
   id        String   @id @default("default")
   keys      Json
   updatedAt DateTime @updatedAt
+}
+
+model ShopLink {
+  id          String   @id @default(cuid())
+  titleEn     String
+  titleHe     String
+  categoryEn  String
+  categoryHe  String
+  shopName    String   @default("Batshi Home")
+  productUrl  String
+  imageUrl    String?
+  price       Float?
+  utmSource   String   @default("shoshi_halperin")
+  utmMedium   String   @default("referral")
+  utmCampaign String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
 }

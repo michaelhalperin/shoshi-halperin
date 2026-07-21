@@ -4,8 +4,10 @@ import { api, type User } from "./api";
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
+  setPassword: (password: string, confirmPassword: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -14,10 +16,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const refreshUser = async () => {
+    const d = await api.get<{ user: User | null }>("/api/auth/me");
+    setUser(d.user);
+  };
+
   useEffect(() => {
-    api
-      .get<{ user: User | null }>("/api/auth/me")
-      .then((d) => setUser(d.user))
+    refreshUser()
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
@@ -25,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const d = await api.post<{ user: User }>("/api/auth/login", { email, password });
     setUser(d.user);
+    return d.user;
   };
 
   const logout = async () => {
@@ -32,8 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const setPassword = async (password: string, confirmPassword: string) => {
+    const d = await api.post<{ user: User }>("/api/auth/set-password", { password, confirmPassword });
+    setUser(d.user);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, setPassword, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

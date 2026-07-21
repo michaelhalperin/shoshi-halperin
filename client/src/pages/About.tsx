@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type AboutContent } from "../api";
-import { Button, OrnamentalDivider, Spinner } from "../components/ui";
+import { Button, FadeInImage, OrnamentalDivider, Spinner } from "../components/ui";
 import { useI18n, type Lang } from "../i18n";
 import { siteConfig } from "../site";
 
@@ -50,14 +50,15 @@ export default function About() {
       </section>
 
       <section className="mx-auto grid max-w-5xl gap-10 pb-14 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:items-start sm:gap-14">
-        <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-clay-200 via-clay-100 to-paper sm:sticky sm:top-28">
-          {imageUrl && (
-            <img
+        <div className="relative aspect-[4/5] overflow-hidden bg-[#f0ece6] sm:sticky sm:top-28">
+          {imageUrl ? (
+            <FadeInImage
               src={imageUrl}
               alt={t("aboutPhotoAlt")}
-              loading="lazy"
               className="absolute inset-0 h-full w-full object-cover"
             />
+          ) : (
+            <div className="image-skeleton absolute inset-0" aria-hidden />
           )}
         </div>
 

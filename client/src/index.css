@@ -215,3 +215,30 @@ button:disabled {
     animation: none !important;
   }
 }
+
+@keyframes image-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.image-skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0ece6 0%,
+    #faf8f4 45%,
+    #f0ece6 90%
+  );
+  background-size: 200% 100%;
+  animation: image-shimmer 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-skeleton {
+    animation: none;
+    background: #f0ece6;
+  }
+}

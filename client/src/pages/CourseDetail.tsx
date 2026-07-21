@@ -103,6 +103,7 @@ export default function CourseDetail() {
       await api.post("/api/bookings", {
         slotId: bookingSlot.id,
         ...form,
+        lang,
         couponCode: couponResult?.code ?? (couponCode.trim() || undefined),
       });
       setBookingSlot(null);
@@ -283,8 +284,9 @@ export default function CourseDetail() {
               autoComplete="tel"
             />
             <Input
-              label={t("emailOptional")}
+              label={t("email")}
               type="email"
+              required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               autoComplete="email"

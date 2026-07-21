@@ -10,6 +10,7 @@ import { coursesRouter } from "./routes/courses.js";
 import { aboutRouter } from "./routes/about.js";
 import { galleryRouter } from "./routes/gallery.js";
 import { recipesRouter } from "./routes/recipes.js";
+import { shopLinksRouter } from "./routes/shopLinks.js";
 import { slotsRouter } from "./routes/slots.js";
 
 const app = express();
@@ -41,6 +42,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRouter);
 app.use("/api/courses", coursesRouter);
 app.use("/api/recipes", recipesRouter);
+app.use("/api/shop-links", shopLinksRouter);
 app.use("/api/slots", slotsRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/coupons", couponsRouter);

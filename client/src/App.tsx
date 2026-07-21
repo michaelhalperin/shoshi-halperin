@@ -10,6 +10,7 @@ import AdminCourses from "./pages/admin/AdminCourses";
 import AdminGallery from "./pages/admin/AdminGallery";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminRecipes from "./pages/admin/AdminRecipes";
+import AdminShopLinks from "./pages/admin/AdminShopLinks";
 import AdminSlots from "./pages/admin/AdminSlots";
 import Dashboard from "./pages/admin/Dashboard";
 import About from "./pages/About";
@@ -17,14 +18,26 @@ import CourseDetail from "./pages/CourseDetail";
 import Gallery from "./pages/Gallery";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import SetPassword from "./pages/SetPassword";
 import RecipeDetail from "./pages/RecipeDetail";
 import NotFound from "./pages/NotFound";
+import Shop from "./pages/Shop";
 import Recipes from "./pages/Recipes";
 
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <Spinner />;
   if (!user || user.role !== "admin") return <Navigate to="/login" replace />;
+  if (user.mustSetPassword) return <Navigate to="/set-password" replace />;
+  return <>{children}</>;
+}
+
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Spinner />;
+  if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -38,8 +51,19 @@ export default function App() {
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/recipes/:id" element={<RecipeDetail />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route
+            path="/set-password"
+            element={
+              <RequireAuth>
+                <SetPassword />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/admin"
             element={
@@ -56,6 +80,7 @@ export default function App() {
             <Route path="slots" element={<AdminSlots />} />
             <Route path="bookings" element={<AdminBookings />} />
             <Route path="coupons" element={<AdminCoupons />} />
+            <Route path="shop-links" element={<AdminShopLinks />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Route>

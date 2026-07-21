@@ -518,25 +518,70 @@ export function Modal({
   );
 }
 
-export const courseColors: Record<string, string> = {
-  amber: "bg-clay-500",
-  rose: "bg-rose-400",
-  teal: "bg-teal-600",
-  violet: "bg-violet-400",
-  sky: "bg-sky-600",
-};
+function ImageEmptyIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" aria-hidden>
+      <rect x="3" y="5" width="18" height="14" rx="1.5" />
+      <circle cx="8.5" cy="10" r="1.5" />
+      <path d="M3 16l4.5-4.5a1 1 0 0 1 1.4 0L14 17l2.3-2.3a1 1 0 0 1 1.4 0L21 18" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
-const courseGradients: Record<string, string> = {
-  amber: "from-clay-200 via-clay-100 to-paper",
-  rose: "from-rose-200 via-rose-100 to-paper",
-  teal: "from-teal-200 via-teal-100 to-paper",
-  violet: "from-violet-200 via-violet-100 to-paper",
-  sky: "from-sky-200 via-sky-100 to-paper",
-};
+export function FadeInImage({
+  src,
+  alt,
+  loading = "lazy",
+  className = "",
+  onError,
+}: {
+  src: string;
+  alt: string;
+  loading?: "lazy" | "eager";
+  className?: string;
+  onError?: () => void;
+}) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+    setFailed(false);
+  }, [src]);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, [src]);
+
+  if (failed) return null;
+
+  return (
+    <>
+      {!loaded && <div className="image-skeleton absolute inset-0" aria-hidden />}
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        loading={loading}
+        referrerPolicy="no-referrer"
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          setFailed(true);
+          onError?.();
+        }}
+        className={`${className} transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </>
+  );
+}
 
 export function CourseImage({
   imageUrl,
-  color,
+  color: _color,
   alt,
   className = "",
 }: {
@@ -546,17 +591,20 @@ export function CourseImage({
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const gradient = courseGradients[color] ?? courseGradients.amber;
+
   return (
-    <div className={`relative overflow-hidden bg-gradient-to-br ${gradient} ${className}`}>
-      {imageUrl && !failed && (
-        <img
+    <div className={`relative overflow-hidden bg-[#f0ece6] ${className}`}>
+      {imageUrl && !failed ? (
+        <FadeInImage
           src={imageUrl}
           alt={alt}
-          loading="lazy"
           onError={() => setFailed(true)}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-stone-300" aria-hidden>
+          <ImageEmptyIcon />
+        </div>
       )}
     </div>
   );

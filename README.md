@@ -25,12 +25,18 @@ Then open **http://localhost:5173**.
 
 ### Admin account
 
-| Email             | Password |
-| ----------------- | -------- |
-| admin@example.com | admin123 |
+| Email | Password |
+| ----- | -------- |
+| Glamiquefr@gmail.com | `123456789` |
 
-Log in via the small "Admin" link in the footer (or `/login`).
-Change this password before going live (edit `server/prisma/seed.ts` and reseed).
+Log in via the small "Admin" link in the footer (or `/login`). Use **Forgot password?** anytime to change your password.
+
+Password reset emails are sent via [Resend](https://resend.com). Configure on Render:
+
+| Variable | Purpose |
+| -------- | ------- |
+| `RESEND_API_KEY` | Resend API key |
+| `RESEND_FROM` | Verified sender, e.g. `Shoshi Halperin <noreply@yourdomain.com>` |
 
 ## What's included
 
@@ -38,7 +44,7 @@ Change this password before going live (edit `server/prisma/seed.ts` and reseed)
 
 - Browse active courses (bilingual content, photos)
 - View available time slots with live remaining capacity
-- Book a slot by leaving name + phone (email optional)
+- Book a slot by leaving name, phone, and email (confirmation email sent)
 - Duplicate bookings (same phone, same slot) are rejected
 
 **Admin side** (`/admin`)
@@ -74,7 +80,7 @@ Frontend on **Vercel**, API + database on **Render**.
    - `CLIENT_URL` — your Vercel site URL (e.g. `https://your-app.vercel.app`). Add a custom domain later as a comma-separated list if needed.
 5. Copy the API URL (e.g. `https://mom-course-api.onrender.com`).
 
-The build runs migrations (`db push`) and seeds sample data on each deploy. Change the admin password in `server/prisma/seed.ts` before your first production deploy.
+The build runs migrations (`db push`) and seeds sample data on each deploy. Set `RESEND_API_KEY` on Render so the admin can reset their password.
 
 ### 2. Deploy the site on Vercel
 
@@ -107,5 +113,7 @@ The build runs migrations (`db push`) and seeds sample data on each deploy. Chan
 | `AWS_S3_PUBLIC_URL` | Render | Public base URL for uploaded images |
 | `AWS_ACCESS_KEY_ID` | Render | IAM user access key for S3 uploads |
 | `AWS_SECRET_ACCESS_KEY` | Render | IAM user secret key for S3 uploads |
+| `RESEND_API_KEY` | Render | Resend API key for password reset emails |
+| `RESEND_FROM` | Render | Verified sender address in Resend |
 
 Local copies: `server/.env.example`, `client/.env.example`.

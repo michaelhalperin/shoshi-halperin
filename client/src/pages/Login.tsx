@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../api";
 import { useAuth } from "../auth";
 import { Button, ErrorNote, Input } from "../components/ui";
@@ -19,8 +19,8 @@ export default function Login() {
     setError("");
     setBusy(true);
     try {
-      await login(email, password);
-      navigate("/admin");
+      const user = await login(email, password);
+      navigate(user.mustSetPassword ? "/set-password" : "/admin");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("errorGeneric"));
       setBusy(false);
@@ -54,6 +54,14 @@ export default function Login() {
         <Button type="submit" disabled={busy} className="w-full py-3">
           {t("login")}
         </Button>
+        <p className="text-center">
+          <Link
+            to="/forgot-password"
+            className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400 transition-colors hover:text-clay-700"
+          >
+            {t("forgotPassword")}
+          </Link>
+        </p>
       </form>
     </div>
   );

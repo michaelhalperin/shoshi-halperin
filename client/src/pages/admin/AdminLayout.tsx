@@ -13,6 +13,7 @@ export default function AdminLayout() {
     { to: "/admin/slots", label: t("manageSlots") },
     { to: "/admin/bookings", label: t("manageBookings") },
     { to: "/admin/coupons", label: t("manageCoupons") },
+    { to: "/admin/shop-links", label: t("manageShopLinks") },
   ];
 
   return (

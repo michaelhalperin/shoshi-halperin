@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type GalleryImage } from "../api";
-import { OrnamentalDivider, Spinner } from "../components/ui";
+import { FadeInImage, OrnamentalDivider, Spinner } from "../components/ui";
 import { VideoThumbnail } from "../components/VideoThumbnail";
 import { useI18n } from "../i18n";
 
@@ -36,10 +36,9 @@ function GalleryTile({ item, alt }: { item: GalleryImage; alt: string }) {
   }
 
   return (
-    <img
+    <FadeInImage
       src={item.url}
       alt={alt}
-      loading="lazy"
       className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
     />
   );
@@ -119,7 +118,7 @@ export default function Gallery() {
               key={image.key}
               type="button"
               onClick={() => setSelectedIndex(index)}
-              className={`group relative min-h-0 overflow-hidden border border-stone-200 bg-clay-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-500 ${tileLayouts[index % tileLayouts.length]}`}
+              className={`group relative min-h-0 overflow-hidden border border-stone-200 bg-[#f0ece6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-500 ${tileLayouts[index % tileLayouts.length]}`}
             >
               <GalleryTile
                 item={image}

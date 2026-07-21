@@ -13,11 +13,11 @@ export interface AboutContentData {
 export const DEFAULT_ABOUT_CONTENT: AboutContentData = {
   titleEn: "About me",
   titleHe: "קצת עליי",
-  introEn: "Home cooking, shared with warmth — one workshop at a time.",
+  introEn: "Home cooking, shared with warmth — one course at a time.",
   introHe: "בישול ביתי, בחום — סדנה אחת בכל פעם.",
   paragraphsEn: [
     "I'm Shoshi Halperin, and I believe the best meals start with confidence in your own kitchen. For years I've been teaching people of all levels to cook with joy — from first-time beginners to home cooks who want to sharpen their skills.",
-    "My workshops are small, hands-on, and unhurried. We cook together, taste as we go, and leave plenty of room for questions. Every session is designed so you can recreate the dishes at home, using ingredients you already know and love.",
+    "My courses are small, hands-on, and unhurried. We cook together, taste as we go, and leave plenty of room for questions. Every session is designed so you can recreate the dishes at home, using ingredients you already know and love.",
     "Whether you're learning the basics, diving into sourdough, or looking for personal guidance, I'd love to cook with you. Browse the courses below and pick a time that works for you.",
   ],
   paragraphsHe: [

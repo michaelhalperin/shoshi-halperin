@@ -6,6 +6,7 @@ import {
   normalizeCouponCode,
   validateCouponForCourse,
 } from "../coupons.js";
+import { sendBookingCancellationEmail, sendBookingConfirmationEmail } from "../mail.js";
 import { prisma } from "../prisma.js";
 
 export const bookingsRouter = Router();
@@ -14,15 +15,16 @@ const createSchema = z.object({
   slotId: z.string(),
   name: z.string().min(1),
   phone: z.string().min(5),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().email(),
   couponCode: z.string().optional().or(z.literal("")),
+  lang: z.enum(["en", "he"]).optional(),
 });
 
 // Public: guests book with their contact details, no account needed.
 bookingsRouter.post("/", async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
-  const { slotId, name, phone, email, couponCode: rawCouponCode } = parsed.data;
+  const { slotId, name, phone, email, couponCode: rawCouponCode, lang } = parsed.data;
   const couponCode = rawCouponCode ? normalizeCouponCode(rawCouponCode) : null;
 
   try {
@@ -73,7 +75,7 @@ bookingsRouter.post("/", async (req, res) => {
           slotId,
           name,
           phone,
-          email: email || null,
+          email,
           couponId,
           couponCode: appliedCouponCode,
           originalPrice,
@@ -83,6 +85,22 @@ bookingsRouter.post("/", async (req, res) => {
         include: { slot: { include: { course: true } } },
       });
     });
+
+    void sendBookingConfirmationEmail({
+      to: email,
+      name: booking.name,
+      courseTitleEn: booking.slot.course.titleEn,
+      courseTitleHe: booking.slot.course.titleHe,
+      startsAt: booking.slot.startsAt,
+      endsAt: booking.slot.endsAt,
+      price: booking.slot.course.price,
+      originalPrice: booking.originalPrice,
+      finalPrice: booking.finalPrice,
+      discountAmount: booking.discountAmount,
+      couponCode: booking.couponCode,
+      lang,
+    });
+
     res.status(201).json({ booking });
   } catch (e) {
     const code = e instanceof Error ? e.message : "";
@@ -105,7 +123,7 @@ bookingsRouter.post("/", async (req, res) => {
 // Admin only: cancel a booking.
 bookingsRouter.post("/:id/cancel", requireAdmin, async (req, res) => {
   try {
-    const booking = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const existing = await tx.booking.findUnique({ where: { id: req.params.id } });
       if (!existing) throw new Error("NOT_FOUND");
 
@@ -122,9 +140,21 @@ bookingsRouter.post("/:id/cancel", requireAdmin, async (req, res) => {
         });
       }
 
-      return updated;
+      return { updated, wasConfirmed: existing.status === "confirmed" };
     });
-    res.json({ booking });
+
+    if (result.wasConfirmed && result.updated.email) {
+      void sendBookingCancellationEmail({
+        to: result.updated.email,
+        name: result.updated.name,
+        courseTitleEn: result.updated.slot.course.titleEn,
+        courseTitleHe: result.updated.slot.course.titleHe,
+        startsAt: result.updated.slot.startsAt,
+        endsAt: result.updated.slot.endsAt,
+      });
+    }
+
+    res.json({ booking: result.updated });
   } catch (e) {
     const message = e instanceof Error && e.message === "NOT_FOUND" ? 404 : 500;
     res.status(message).json({ error: "Booking not found" });
