@@ -529,7 +529,7 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() =>
-    localStorage.getItem("lang") === "he" ? "he" : "en"
+    localStorage.getItem("lang") === "en" ? "en" : "he"
   );
 
   useEffect(() => {
