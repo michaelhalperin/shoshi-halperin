@@ -123,7 +123,9 @@ export default function Home() {
                       {pick(course, "description")}
                     </p>
                     <div className="flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
-                      <span className="text-clay-700">₪{course.price}</span>
+                      <span className="text-clay-700">
+                        {course.customPrice ? t("contactForPrice") : `₪${course.price}`}
+                      </span>
                       <span className="h-3 w-px bg-stone-300" />
                       <span>
                         {course.durationMin} {t("minutes")}

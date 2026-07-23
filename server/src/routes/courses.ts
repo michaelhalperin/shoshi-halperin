@@ -28,6 +28,7 @@ const courseSchema = z.object({
   descriptionEn: z.string().min(1),
   descriptionHe: z.string().min(1),
   price: z.number().min(0),
+  customPrice: z.boolean().default(false),
   durationMin: z.number().int().min(5),
   maxParticipants: z.number().int().min(1).default(8),
   imageUrl: z.string().nullable().optional(),

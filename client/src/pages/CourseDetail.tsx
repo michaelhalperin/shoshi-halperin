@@ -4,6 +4,7 @@ import { api, ApiError, type CouponValidation, type Course, type Slot } from "..
 import SlotCalendar, { toDateKey } from "../components/SlotCalendar";
 import { Button, CourseImage, ErrorNote, Input, Modal, OrnamentalDivider, Spinner } from "../components/ui";
 import { formatDateTime, formatTime, useI18n } from "../i18n";
+import { siteConfig } from "../site";
 import NotFound from "./NotFound";
 
 export default function CourseDetail() {
@@ -104,7 +105,9 @@ export default function CourseDetail() {
         slotId: bookingSlot.id,
         ...form,
         lang,
-        couponCode: couponResult?.code ?? (couponCode.trim() || undefined),
+        couponCode: course?.customPrice
+          ? undefined
+          : (couponResult?.code ?? (couponCode.trim() || undefined)),
       });
       setBookingSlot(null);
       setSuccess(t("bookedSuccess"));
@@ -119,6 +122,8 @@ export default function CourseDetail() {
   if (notFound) return <NotFound />;
   if (!course) return <Spinner />;
 
+  const priceLabel = course.customPrice ? t("contactForPrice") : `₪${course.price}`;
+
   return (
     <div className="mx-auto max-w-4xl">
       {/* Course header: image beside editorial text */}
@@ -131,7 +136,7 @@ export default function CourseDetail() {
         />
         <div>
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-clay-600">
-            {course.durationMin} {t("minutes")} · ₪{course.price} · {t("upToPeople")}{" "}
+            {course.durationMin} {t("minutes")} · {priceLabel} · {t("upToPeople")}{" "}
             {course.maxParticipants} {t("people")}
           </p>
           <h1 className="mb-5 font-display text-4xl font-medium leading-[1.1] text-ink sm:text-5xl">
@@ -140,6 +145,16 @@ export default function CourseDetail() {
           <p className="text-[17px] font-light leading-relaxed text-stone-600">
             {pick(course, "description")}
           </p>
+          {course.customPrice && (
+            <a
+              href={siteConfig.social.whatsapp}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-6 inline-flex text-sm font-semibold uppercase tracking-[0.14em] text-clay-700 underline decoration-clay-300 underline-offset-4 transition-colors hover:text-clay-800"
+            >
+              {t("contactViaWhatsApp")}
+            </a>
+          )}
         </div>
       </section>
 
@@ -241,7 +256,22 @@ export default function CourseDetail() {
           <p className="mb-6 text-sm font-light text-stone-500">{t("bookingFormHint")}</p>
 
           <div className="mb-6 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm">
-            {couponResult ? (
+            {course.customPrice ? (
+              <div className="space-y-2">
+                <div className="flex justify-between font-semibold text-ink">
+                  <span>{t("price")}</span>
+                  <span>{t("contactForPrice")}</span>
+                </div>
+                <a
+                  href={siteConfig.social.whatsapp}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-sm font-semibold text-clay-700 underline decoration-clay-300 underline-offset-4 transition-colors hover:text-clay-800"
+                >
+                  {t("contactViaWhatsApp")}
+                </a>
+              </div>
+            ) : couponResult ? (
               <div className="space-y-1">
                 <div className="flex justify-between text-stone-600">
                   <span>{t("originalPrice")}</span>
@@ -291,36 +321,38 @@ export default function CourseDetail() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               autoComplete="email"
             />
-            <div>
-              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
-                {t("couponCodeOptional")}
-              </span>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => {
-                    setCouponCode(e.target.value.toUpperCase());
-                    setCouponResult(null);
-                    setCouponError("");
-                  }}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 font-mono text-sm uppercase tracking-wide text-ink outline-none transition-colors focus:border-clay-500"
-                  autoComplete="off"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={couponBusy || !couponCode.trim()}
-                  onClick={applyCoupon}
-                >
-                  {t("applyCoupon")}
-                </Button>
+            {!course.customPrice && (
+              <div>
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {t("couponCodeOptional")}
+                </span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      setCouponResult(null);
+                      setCouponError("");
+                    }}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 font-mono text-sm uppercase tracking-wide text-ink outline-none transition-colors focus:border-clay-500"
+                    autoComplete="off"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={couponBusy || !couponCode.trim()}
+                    onClick={applyCoupon}
+                  >
+                    {t("applyCoupon")}
+                  </Button>
+                </div>
+                {couponResult && (
+                  <p className="mt-2 text-sm text-emerald-700">{t("couponApplied")}</p>
+                )}
+                {couponError && <p className="mt-2 text-sm text-red-600">{couponError}</p>}
               </div>
-              {couponResult && (
-                <p className="mt-2 text-sm text-emerald-700">{t("couponApplied")}</p>
-              )}
-              {couponError && <p className="mt-2 text-sm text-red-600">{couponError}</p>}
-            </div>
+            )}
             {formError && <ErrorNote message={formError} />}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setBookingSlot(null)}>

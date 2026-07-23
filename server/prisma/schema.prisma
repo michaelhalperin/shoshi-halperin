@@ -26,6 +26,7 @@ model Course {
   descriptionEn String
   descriptionHe String
   price         Float
+  customPrice   Boolean    @default(false)
   durationMin   Int
   maxParticipants Int     @default(8)
   imageUrl      String?

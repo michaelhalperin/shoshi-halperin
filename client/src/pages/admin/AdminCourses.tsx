@@ -20,6 +20,7 @@ const emptyForm = {
   descriptionEn: "",
   descriptionHe: "",
   price: 0,
+  customPrice: false,
   durationMin: 60,
   maxParticipants: 8,
   imageUrl: "",
@@ -58,6 +59,7 @@ export default function AdminCourses() {
       descriptionEn: course.descriptionEn,
       descriptionHe: course.descriptionHe,
       price: course.price,
+      customPrice: course.customPrice,
       durationMin: course.durationMin,
       maxParticipants: course.maxParticipants,
       imageUrl: course.imageUrl ?? "",
@@ -134,8 +136,9 @@ export default function AdminCourses() {
                   )}
                 </div>
                 <div className="text-sm font-light text-stone-500">
-                  ₪{course.price} · {course.durationMin} {t("minutes")} · {t("upToPeople")}{" "}
-                  {course.maxParticipants} {t("people")}
+                  {course.customPrice ? t("contactForPrice") : `₪${course.price}`} ·{" "}
+                  {course.durationMin} {t("minutes")} · {t("upToPeople")} {course.maxParticipants}{" "}
+                  {t("people")}
                 </div>
               </div>
             </div>
@@ -207,15 +210,33 @@ export default function AdminCourses() {
               color={form.color}
             />
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
-              <Input
-                label={`${t("price")} (₪)`}
-                type="number"
-                min={0}
-                step="0.01"
-                required
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-              />
+              <div className="space-y-2">
+                <Input
+                  label={`${t("price")} (₪)`}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  required={!form.customPrice}
+                  disabled={form.customPrice}
+                  value={form.customPrice ? "" : form.price}
+                  onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                />
+                <label className="flex items-center gap-2 text-sm font-medium text-stone-600">
+                  <input
+                    type="checkbox"
+                    checked={form.customPrice}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        customPrice: e.target.checked,
+                        price: e.target.checked ? 0 : form.price,
+                      })
+                    }
+                    className="h-4 w-4 accent-clay-600"
+                  />
+                  {t("customPrice")}
+                </label>
+              </div>
               <Input
                 label={`${t("duration")} (${t("minutes")})`}
                 type="number"

@@ -55,7 +55,12 @@ bookingsRouter.post("/", async (req, res) => {
         const coupon = await tx.coupon.findUnique({ where: { code: couponCode } });
         if (!coupon) throw new Error("COUPON_NOT_FOUND");
 
-        const result = validateCouponForCourse(coupon, slot.course.id, slot.course.price);
+        const result = validateCouponForCourse(
+          coupon,
+          slot.course.id,
+          slot.course.price,
+          slot.course.customPrice
+        );
         if (typeof result === "string") throw new Error(result);
 
         couponId = coupon.id;
@@ -94,6 +99,7 @@ bookingsRouter.post("/", async (req, res) => {
       startsAt: booking.slot.startsAt,
       endsAt: booking.slot.endsAt,
       price: booking.slot.course.price,
+      customPrice: booking.slot.course.customPrice,
       originalPrice: booking.originalPrice,
       finalPrice: booking.finalPrice,
       discountAmount: booking.discountAmount,
@@ -114,6 +120,7 @@ bookingsRouter.post("/", async (req, res) => {
       COUPON_EXPIRED: [400, couponErrorMessages.COUPON_EXPIRED],
       COUPON_EXHAUSTED: [400, couponErrorMessages.COUPON_EXHAUSTED],
       COUPON_WRONG_COURSE: [400, couponErrorMessages.COUPON_WRONG_COURSE],
+      COUPON_CUSTOM_PRICE: [400, couponErrorMessages.COUPON_CUSTOM_PRICE],
     };
     const [status, message] = map[code] ?? [500, "Booking failed"];
     res.status(status).json({ error: message });

@@ -66,6 +66,7 @@ export interface BookingEmailDetails {
 
 export interface BookingConfirmationDetails extends BookingEmailDetails {
   price: number;
+  customPrice?: boolean;
   originalPrice?: number | null;
   finalPrice?: number | null;
   discountAmount?: number | null;
@@ -98,6 +99,7 @@ export async function sendBookingConfirmationEmail(
 
   const paid = details.finalPrice ?? details.price;
   const hasDiscount =
+    !details.customPrice &&
     details.couponCode &&
     details.originalPrice != null &&
     details.discountAmount != null &&
@@ -112,6 +114,7 @@ export async function sendBookingConfirmationEmail(
           course: "סדנה",
           when: "מתי",
           price: "מחיר",
+          customPrice: "מחיר בהתאמה אישית — נא ליצור קשר",
           originalPrice: "מחיר מקורי",
           discount: "הנחה",
           finalPrice: "לתשלום",
@@ -126,6 +129,7 @@ export async function sendBookingConfirmationEmail(
           course: "Course",
           when: "When",
           price: "Price",
+          customPrice: "Custom price — please contact us",
           originalPrice: "Original price",
           discount: "Discount",
           finalPrice: "Total",
@@ -134,13 +138,15 @@ export async function sendBookingConfirmationEmail(
           app: "Shoshi Halperin",
         };
 
-  const priceLines = hasDiscount
-    ? [
-        `${copy.originalPrice}: ${formatPrice(details.originalPrice!)}`,
-        `${copy.discount} (${details.couponCode}): -${formatPrice(details.discountAmount!)}`,
-        `${copy.finalPrice}: ${formatPrice(details.finalPrice!)}`,
-      ]
-    : [`${copy.price}: ${formatPrice(paid)}`];
+  const priceLines = details.customPrice
+    ? [`${copy.price}: ${copy.customPrice}`]
+    : hasDiscount
+      ? [
+          `${copy.originalPrice}: ${formatPrice(details.originalPrice!)}`,
+          `${copy.discount} (${details.couponCode}): -${formatPrice(details.discountAmount!)}`,
+          `${copy.finalPrice}: ${formatPrice(details.finalPrice!)}`,
+        ]
+      : [`${copy.price}: ${formatPrice(paid)}`];
 
   const text = [
     copy.greeting,
@@ -155,11 +161,13 @@ export async function sendBookingConfirmationEmail(
     copy.app,
   ].join("\n");
 
-  const priceHtml = hasDiscount
-    ? `<p>${copy.originalPrice}: ${formatPrice(details.originalPrice!)}</p>
+  const priceHtml = details.customPrice
+    ? `<p><strong>${copy.price}:</strong> ${copy.customPrice}</p>`
+    : hasDiscount
+      ? `<p>${copy.originalPrice}: ${formatPrice(details.originalPrice!)}</p>
        <p>${copy.discount} (${details.couponCode}): -${formatPrice(details.discountAmount!)}</p>
        <p><strong>${copy.finalPrice}: ${formatPrice(details.finalPrice!)}</strong></p>`
-    : `<p><strong>${copy.price}: ${formatPrice(paid)}</strong></p>`;
+      : `<p><strong>${copy.price}: ${formatPrice(paid)}</strong></p>`;
 
   const html = `
     <div style="font-family: Georgia, serif; color: #1c1917; line-height: 1.6; max-width: 520px;">

@@ -77,6 +77,8 @@ export default function AdminBookings() {
                           </div>
                         ) : null}
                       </div>
+                    ) : b.slot.course.customPrice ? (
+                      <span>{t("contactForPrice")}</span>
                     ) : (
                       <span>₪{b.slot.course.price}</span>
                     )}

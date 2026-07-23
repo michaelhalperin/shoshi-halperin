@@ -78,7 +78,7 @@ export function Input({ label, className = "", ...props }: InputHTMLAttributes<H
         </span>
       )}
       <input
-        className={`w-full border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors placeholder:text-stone-400 focus:border-ink ${className}`}
+        className={`w-full border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors placeholder:text-stone-400 focus:border-ink disabled:cursor-not-allowed disabled:text-stone-400 disabled:opacity-60 ${className}`}
         {...props}
       />
     </label>

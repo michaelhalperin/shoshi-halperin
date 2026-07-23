@@ -86,6 +86,7 @@ export interface Course {
   descriptionEn: string;
   descriptionHe: string;
   price: number;
+  customPrice: boolean;
   durationMin: number;
   maxParticipants: number;
   imageUrl?: string | null;

@@ -5,7 +5,8 @@ export type CouponError =
   | "COUPON_INACTIVE"
   | "COUPON_EXPIRED"
   | "COUPON_EXHAUSTED"
-  | "COUPON_WRONG_COURSE";
+  | "COUPON_WRONG_COURSE"
+  | "COUPON_CUSTOM_PRICE";
 
 export function normalizeCouponCode(code: string) {
   return code.trim().toUpperCase();
@@ -14,8 +15,10 @@ export function normalizeCouponCode(code: string) {
 export function validateCouponForCourse(
   coupon: Coupon,
   courseId: string,
-  coursePrice: number
+  coursePrice: number,
+  customPrice = false
 ): { discountAmount: number; finalPrice: number } | CouponError {
+  if (customPrice) return "COUPON_CUSTOM_PRICE";
   if (!coupon.active) return "COUPON_INACTIVE";
   if (coupon.expiresAt && coupon.expiresAt <= new Date()) return "COUPON_EXPIRED";
   if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) return "COUPON_EXHAUSTED";
@@ -45,4 +48,5 @@ export const couponErrorMessages: Record<CouponError, string> = {
   COUPON_EXPIRED: "This coupon has expired",
   COUPON_EXHAUSTED: "This coupon has reached its usage limit",
   COUPON_WRONG_COURSE: "This coupon does not apply to this course",
+  COUPON_CUSTOM_PRICE: "Coupons cannot be applied to courses with custom pricing",
 };
