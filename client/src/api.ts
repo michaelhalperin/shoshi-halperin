@@ -165,9 +165,19 @@ export interface GalleryImage {
   url: string;
   type: "image" | "video";
   lastModified: string | null;
+  posterUrl?: string | null;
+  posterFocusX?: number | null;
+  posterFocusY?: number | null;
+  posterScale?: number | null;
 }
 
-export type UploadFolder = "courses" | "recipes" | "gallery" | "testimonials" | "about";
+export type UploadFolder =
+  | "courses"
+  | "recipes"
+  | "gallery"
+  | "testimonials"
+  | "testimonial-posters"
+  | "about";
 
 export interface AboutContent {
   id: string;

@@ -4,16 +4,26 @@ import { requireAdmin } from "../auth.js";
 import { getAboutContent, saveAboutContent } from "../about.js";
 import { removeFromGalleryOrder, saveGalleryOrderKeys } from "../gallery.js";
 import { prisma } from "../prisma.js";
-import { deleteImage, isS3Configured, listImages } from "../s3.js";
+import { deleteImage, isS3Configured, keyFromPublicUrl, listImages } from "../s3.js";
 import {
+  isTestimonialVideoKey,
   removeFromTestimonialOrder,
   saveTestimonialOrderKeys,
+  setTestimonialPoster,
 } from "../testimonials.js";
 import { aboutContentSchema } from "./about.js";
 import { uploadsRouter } from "./uploads.js";
 
 const mediaOrderSchema = z.object({
   keys: z.array(z.string().min(1)),
+});
+
+const testimonialPosterSchema = z.object({
+  key: z.string().min(1),
+  posterUrl: z.string().url().nullable(),
+  focusX: z.number().min(0).max(100).optional(),
+  focusY: z.number().min(0).max(100).optional(),
+  scale: z.number().min(0.5).max(3).optional(),
 });
 
 export const adminRouter = Router();
@@ -90,6 +100,58 @@ adminRouter.put("/testimonials/order", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to save testimonials order" });
+  }
+});
+
+adminRouter.put("/testimonials/poster", async (req, res) => {
+  const parsed = testimonialPosterSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid input" });
+  }
+
+  if (!isS3Configured()) {
+    return res.status(503).json({ error: "Image storage is not configured" });
+  }
+
+  const { key, posterUrl, focusX, focusY, scale } = parsed.data;
+  if (!key.startsWith("testimonials/") || !isTestimonialVideoKey(key)) {
+    return res.status(400).json({ error: "Poster can only be set on a testimonial video" });
+  }
+
+  try {
+    const images = await listImages("testimonials");
+    if (!images.some((image) => image.key === key && image.type === "video")) {
+      return res.status(400).json({ error: "Testimonial video not found" });
+    }
+
+    if (posterUrl) {
+      const posterKey = keyFromPublicUrl(posterUrl);
+      if (!posterKey || !posterKey.startsWith("testimonial-posters/")) {
+        return res.status(400).json({ error: "Invalid poster image URL" });
+      }
+    }
+
+    const saved = await setTestimonialPoster(
+      key,
+      posterUrl,
+      posterUrl
+        ? {
+            x: focusX ?? 50,
+            y: focusY ?? 50,
+            scale: scale ?? 1,
+          }
+        : null
+    );
+    res.json({
+      key,
+      posterUrl: saved?.url ?? null,
+      focusX: saved?.focusX ?? null,
+      focusY: saved?.focusY ?? null,
+      scale: saved?.scale ?? null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save testimonial poster" });
   }
 });
 

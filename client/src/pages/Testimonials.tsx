@@ -3,24 +3,27 @@ import { api, type GalleryImage } from "../api";
 import { FadeInImage, OrnamentalDivider, Spinner } from "../components/ui";
 import { VideoThumbnail } from "../components/VideoThumbnail";
 import { useI18n } from "../i18n";
-
-const tileLayouts = [
-  "col-span-2 row-span-2",
-  "col-span-2 row-span-1",
-  "col-span-1 row-span-1",
-  "col-span-1 row-span-1",
-  "col-span-2 row-span-1",
-  "col-span-2 row-span-1",
-] as const;
+import { posterFrameStyle, testimonialTileLayout } from "../testimonialTiles";
 
 function TestimonialTile({ item, alt }: { item: GalleryImage; alt: string }) {
   if (item.type === "video") {
     return (
       <>
-        <VideoThumbnail
-          src={item.url}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-        />
+        {item.posterUrl ? (
+          <span className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.04]">
+            <FadeInImage
+              src={item.posterUrl}
+              alt={alt}
+              style={posterFrameStyle(item.posterFocusX, item.posterFocusY, item.posterScale)}
+              className="absolute inset-0 h-full w-full"
+            />
+          </span>
+        ) : (
+          <VideoThumbnail
+            src={item.url}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+          />
+        )}
         <span
           className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink/20"
           aria-hidden
@@ -101,9 +104,6 @@ export default function Testimonials() {
         <h1 className="mb-6 font-display text-5xl font-medium leading-[1.08] text-ink sm:text-6xl">
           {t("testimonialsTitle")}
         </h1>
-        <p className="mx-auto text-lg font-light leading-relaxed text-stone-500">
-          {t("testimonialsHero")}
-        </p>
         <OrnamentalDivider className="mt-10" />
       </section>
 
@@ -118,7 +118,7 @@ export default function Testimonials() {
               key={image.key}
               type="button"
               onClick={() => setSelectedIndex(index)}
-              className={`group relative min-h-0 overflow-hidden border border-stone-200 bg-[#f0ece6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-500 ${tileLayouts[index % tileLayouts.length]}`}
+              className={`group relative min-h-0 overflow-hidden border border-stone-200 bg-[#f0ece6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-500 ${testimonialTileLayout(index)}`}
             >
               <TestimonialTile
                 item={image}
@@ -190,6 +190,7 @@ export default function Testimonials() {
               ref={videoRef}
               key={selected.key}
               src={selected.url}
+              poster={selected.posterUrl ?? undefined}
               controls
               autoPlay
               playsInline

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { useCallback, useEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api";
@@ -93,7 +93,7 @@ export function ImageUpload({
   color = "amber",
 }: {
   label: string;
-  folder: "courses" | "recipes" | "gallery" | "testimonials" | "about";
+  folder: "courses" | "recipes" | "gallery" | "testimonials" | "testimonial-posters" | "about";
   value: string;
   onChange: (url: string) => void;
   color?: string;
@@ -533,12 +533,14 @@ export function FadeInImage({
   alt,
   loading = "lazy",
   className = "",
+  style,
   onError,
 }: {
   src: string;
   alt: string;
   loading?: "lazy" | "eager";
   className?: string;
+  style?: CSSProperties;
   onError?: () => void;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
@@ -568,6 +570,7 @@ export function FadeInImage({
         alt={alt}
         loading={loading}
         referrerPolicy="no-referrer"
+        style={style}
         onLoad={() => setLoaded(true)}
         onError={() => {
           setFailed(true);

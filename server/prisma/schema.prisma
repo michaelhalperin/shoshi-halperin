@@ -118,6 +118,8 @@ model GalleryOrder {
 model TestimonialOrder {
   id        String   @id @default("default")
   keys      Json
+  /// Map of video object key -> preview image public URL
+  posters   Json     @default("{}")
   updatedAt DateTime @updatedAt
 }
 
