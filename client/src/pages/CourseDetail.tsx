@@ -147,7 +147,7 @@ export default function CourseDetail() {
           </p>
           {course.customPrice && (
             <a
-              href={siteConfig.social.whatsapp}
+              href={siteConfig.social.whatsappCustomPrice}
               target="_blank"
               rel="noreferrer"
               className="mt-6 inline-flex text-sm font-semibold uppercase tracking-[0.14em] text-clay-700 underline decoration-clay-300 underline-offset-4 transition-colors hover:text-clay-800"
@@ -263,7 +263,7 @@ export default function CourseDetail() {
                   <span>{t("contactForPrice")}</span>
                 </div>
                 <a
-                  href={siteConfig.social.whatsapp}
+                  href={siteConfig.social.whatsappCustomPrice}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex text-sm font-semibold text-clay-700 underline decoration-clay-300 underline-offset-4 transition-colors hover:text-clay-800"
