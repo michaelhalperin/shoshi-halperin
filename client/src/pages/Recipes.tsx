@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Recipe } from "../api";
+import { BrandHeading } from "../components/BrandHeading";
 import { Button, CourseImage, ErrorNote, LinkedCourseLink, OrnamentalDivider, Spinner } from "../components/ui";
 import { useI18n } from "../i18n";
 
@@ -25,12 +26,11 @@ export default function Recipes() {
   return (
     <div>
       <section className="mx-auto max-w-3xl pt-10 pb-10 text-center sm:pt-16 sm:pb-14">
-        <h1 className="mb-6 font-display text-5xl font-medium leading-[1.08] text-ink sm:text-6xl">
-          {t("recipesTitle")}
-        </h1>
-        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-stone-500">
-          {t("recipesHero")}
-        </p>
+        <BrandHeading
+          before={t("recipesTitleBefore")}
+          name={t("recipesTitleName")}
+          after={t("recipesTitleAfter")}
+        />
         <OrnamentalDivider className="mt-10" />
       </section>
 

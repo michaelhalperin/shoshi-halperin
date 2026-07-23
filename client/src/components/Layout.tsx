@@ -156,6 +156,9 @@ export default function Layout() {
               <NavLink to="/gallery" className={({ isActive }) => navLinkClass(isActive)}>
                 {t("gallery")}
               </NavLink>
+              <NavLink to="/testimonials" className={({ isActive }) => navLinkClass(isActive)}>
+                {t("testimonials")}
+              </NavLink>
               <NavLink to="/about" className={({ isActive }) => navLinkClass(isActive)}>
                 {t("about")}
               </NavLink>
@@ -206,6 +209,10 @@ export default function Layout() {
             <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
             <NavLink to="/gallery" className={({ isActive }) => `${navLinkClass(isActive, true)} shrink-0`}>
               {t("gallery")}
+            </NavLink>
+            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
+            <NavLink to="/testimonials" className={({ isActive }) => `${navLinkClass(isActive, true)} shrink-0`}>
+              {t("testimonials")}
             </NavLink>
             <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
             <NavLink to="/about" className={({ isActive }) => `${navLinkClass(isActive, true)} shrink-0`}>

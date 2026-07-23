@@ -1,7 +1,7 @@
 import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomBytes } from "crypto";
 
-export const UPLOAD_FOLDERS = ["courses", "recipes", "gallery", "about"] as const;
+export const UPLOAD_FOLDERS = ["courses", "recipes", "gallery", "testimonials", "about"] as const;
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
 
 const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -101,7 +101,7 @@ export function publicUrlForKey(key: string) {
 }
 
 export async function uploadFile(folder: UploadFolder, file: Express.Multer.File) {
-  if (folder === "gallery") {
+  if (folder === "gallery" || folder === "testimonials") {
     validateGalleryFile(file);
   } else {
     validateImageFile(file);

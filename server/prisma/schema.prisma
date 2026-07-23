@@ -115,6 +115,12 @@ model GalleryOrder {
   updatedAt DateTime @updatedAt
 }
 
+model TestimonialOrder {
+  id        String   @id @default("default")
+  keys      Json
+  updatedAt DateTime @updatedAt
+}
+
 model ShopLink {
   id          String   @id @default(cuid())
   titleEn     String

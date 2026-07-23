@@ -167,7 +167,7 @@ export interface GalleryImage {
   lastModified: string | null;
 }
 
-export type UploadFolder = "courses" | "recipes" | "gallery" | "about";
+export type UploadFolder = "courses" | "recipes" | "gallery" | "testimonials" | "about";
 
 export interface AboutContent {
   id: string;

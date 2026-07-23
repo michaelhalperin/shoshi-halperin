@@ -9,6 +9,7 @@ export default function AdminLayout() {
     { to: "/admin/courses", label: t("manageCourses") },
     { to: "/admin/recipes", label: t("manageRecipes") },
     { to: "/admin/gallery", label: t("manageGallery") },
+    { to: "/admin/testimonials", label: t("manageTestimonials") },
     { to: "/admin/about", label: t("manageAbout") },
     { to: "/admin/slots", label: t("manageSlots") },
     { to: "/admin/bookings", label: t("manageBookings") },

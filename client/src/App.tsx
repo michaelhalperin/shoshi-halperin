@@ -12,6 +12,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminRecipes from "./pages/admin/AdminRecipes";
 import AdminShopLinks from "./pages/admin/AdminShopLinks";
 import AdminSlots from "./pages/admin/AdminSlots";
+import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import Dashboard from "./pages/admin/Dashboard";
 import About from "./pages/About";
 import CourseDetail from "./pages/CourseDetail";
@@ -25,6 +26,7 @@ import RecipeDetail from "./pages/RecipeDetail";
 import NotFound from "./pages/NotFound";
 import Shop from "./pages/Shop";
 import Recipes from "./pages/Recipes";
+import Testimonials from "./pages/Testimonials";
 
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -51,6 +53,7 @@ export default function App() {
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/recipes/:id" element={<RecipeDetail />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/testimonials" element={<Testimonials />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/login" element={<Login />} />
@@ -76,6 +79,7 @@ export default function App() {
             <Route path="courses" element={<AdminCourses />} />
             <Route path="recipes" element={<AdminRecipes />} />
             <Route path="gallery" element={<AdminGallery />} />
+            <Route path="testimonials" element={<AdminTestimonials />} />
             <Route path="about" element={<AdminAbout />} />
             <Route path="slots" element={<AdminSlots />} />
             <Route path="bookings" element={<AdminBookings />} />

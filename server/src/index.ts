@@ -12,6 +12,7 @@ import { galleryRouter } from "./routes/gallery.js";
 import { recipesRouter } from "./routes/recipes.js";
 import { shopLinksRouter } from "./routes/shopLinks.js";
 import { slotsRouter } from "./routes/slots.js";
+import { testimonialsRouter } from "./routes/testimonials.js";
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3000);
@@ -48,6 +49,7 @@ app.use("/api/bookings", bookingsRouter);
 app.use("/api/coupons", couponsRouter);
 app.use("/api/about", aboutRouter);
 app.use("/api/gallery", galleryRouter);
+app.use("/api/testimonials", testimonialsRouter);
 app.use("/api/admin", adminRouter);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));

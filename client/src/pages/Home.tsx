@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Course, type Slot } from "../api";
-import logo from "../assets/logo.png";
+import { BrandHeading } from "../components/BrandHeading";
 import DateSlider from "../components/DateSlider";
 import { toDateKey } from "../components/SlotCalendar";
 import { Button, CourseImage, ErrorNote, OrnamentalDivider, Spinner } from "../components/ui";
@@ -72,21 +72,11 @@ export default function Home() {
   return (
     <div>
       <section className="mx-auto max-w-3xl pt-10 pb-10 text-center sm:pt-16 sm:pb-14">
-        <h1 className="mb-6 font-display text-5xl font-medium leading-[1.08] text-ink sm:text-6xl">
-          {t("taglineBefore")}
-          {lang === "he" ? (
-            <img
-              src={logo}
-              alt={t("taglineName")}
-              className="mx-1 inline-block h-[1.9em] w-auto align-[-0.45em]"
-            />
-          ) : (
-            <span className="font-hand text-[1.15em] font-semibold text-clay-700">
-              {t("taglineName")}
-            </span>
-          )}
-          {t("taglineAfter")}
-        </h1>
+        <BrandHeading
+          before={t("taglineBefore")}
+          name={t("taglineName")}
+          after={t("taglineAfter")}
+        />
         <OrnamentalDivider className="mt-10" />
       </section>
 
