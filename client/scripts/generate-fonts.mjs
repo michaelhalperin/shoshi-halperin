@@ -12,6 +12,8 @@ const fonts = [
   ["cormorant-garamond", ["400", "500", "600", "700"]],
   ["cormorant-garamond", ["400-italic"]],
   ["frank-ruhl-libre", ["400", "500", "600", "700"]],
+  ["caveat", ["500", "600", "700"]],
+  ["amatic-sc", ["400", "700"]],
 ];
 
 function fontsourceDir(pkg) {

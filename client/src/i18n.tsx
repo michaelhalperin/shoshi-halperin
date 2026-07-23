@@ -4,7 +4,9 @@ const dictionaries = {
   en: {
     appName: "Shoshi Halperin",
     tagline: "Shoshi's Kitchen",
-    heroText: "Browse our courses and book your spot in just a few clicks.",
+    taglineBefore: "",
+    taglineName: "Shoshi's ",
+    taglineAfter: " Kitchen",
     courses: "Courses",
     recipes: "Recipes",
     gallery: "Gallery",
@@ -234,7 +236,9 @@ const dictionaries = {
   he: {
     appName: "שושי הלפרין",
     tagline: "המטבח של שושי",
-    heroText: "מצאו סדנה שמתאימה לכם וקבעו מקום בכמה לחיצות.",
+    taglineBefore: "המטבח של ",
+    taglineName: "שושי",
+    taglineAfter: "",
     courses: "סדנאות",
     recipes: "מתכונים",
     gallery: "גלריה",

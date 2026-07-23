@@ -4,6 +4,7 @@ import { api, type AboutContent } from "../api";
 import { Button, FadeInImage, OrnamentalDivider, Spinner } from "../components/ui";
 import { useI18n, type Lang } from "../i18n";
 import { siteConfig } from "../site";
+import { descriptionParagraphs } from "../text";
 
 const highlights = [
   { title: "aboutHighlight1Title" as const, text: "aboutHighlight1Text" as const },
@@ -35,7 +36,9 @@ export default function About() {
 
   if (!content) return <Spinner />;
 
-  const paragraphs = lang === "he" ? content.paragraphsHe : content.paragraphsEn;
+  const paragraphs = (lang === "he" ? content.paragraphsHe : content.paragraphsEn).flatMap(
+    descriptionParagraphs
+  );
 
   return (
     <div>
@@ -43,9 +46,11 @@ export default function About() {
         <h1 className="mb-4 font-display text-5xl font-medium leading-[1.08] text-ink sm:text-6xl">
           {aboutField(content, "title", lang)}
         </h1>
-        <p className="mx-auto max-w-lg text-lg font-light leading-relaxed text-stone-500">
-          {aboutField(content, "intro", lang)}
-        </p>
+        {aboutField(content, "intro", lang).trim() && (
+          <p className="mx-auto max-w-lg text-lg font-light leading-relaxed text-stone-500">
+            {aboutField(content, "intro", lang)}
+          </p>
+        )}
         <OrnamentalDivider className="mt-8" />
       </section>
 
@@ -62,7 +67,7 @@ export default function About() {
           )}
         </div>
 
-        <div className="space-y-5 text-[15px] font-light leading-relaxed text-stone-600 sm:pt-2">
+        <div className="space-y-4 text-[17px] font-light leading-[1.75] text-stone-600 sm:pt-2">
           {paragraphs.map((paragraph, index) => (
             <p key={index}>{paragraph}</p>
           ))}

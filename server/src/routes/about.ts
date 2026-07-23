@@ -27,8 +27,8 @@ export const aboutContentSchema = z
   .object({
     titleEn: z.string().min(1),
     titleHe: z.string().min(1),
-    introEn: z.string().min(1),
-    introHe: z.string().min(1),
+    introEn: z.string(),
+    introHe: z.string(),
     paragraphsEn: z.array(z.string().min(1)).min(1),
     paragraphsHe: z.array(z.string().min(1)).min(1),
   })

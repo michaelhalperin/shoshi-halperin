@@ -5,6 +5,7 @@ import SlotCalendar, { toDateKey } from "../components/SlotCalendar";
 import { Button, CourseImage, ErrorNote, Input, Modal, OrnamentalDivider, Spinner } from "../components/ui";
 import { formatDateTime, formatTime, useI18n } from "../i18n";
 import { siteConfig } from "../site";
+import { descriptionParagraphs } from "../text";
 import NotFound from "./NotFound";
 
 export default function CourseDetail() {
@@ -123,16 +124,17 @@ export default function CourseDetail() {
   if (!course) return <Spinner />;
 
   const priceLabel = course.customPrice ? t("contactForPrice") : `₪${course.price}`;
+  const paragraphs = descriptionParagraphs(pick(course, "description"));
 
   return (
     <div className="mx-auto max-w-4xl">
       {/* Course header: image beside editorial text */}
-      <section className="mb-16 grid items-center gap-8 py-6 md:grid-cols-2 md:gap-14">
+      <section className="mb-16 grid items-start gap-8 py-6 md:grid-cols-2 md:gap-14">
         <CourseImage
           imageUrl={course.imageUrl}
           color={course.color}
           alt={pick(course, "title")}
-          className="group aspect-[4/3] md:aspect-[4/5]"
+          className="group aspect-[4/3] md:sticky md:top-28 md:aspect-[4/5]"
         />
         <div>
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-clay-600">
@@ -142,9 +144,13 @@ export default function CourseDetail() {
           <h1 className="mb-5 font-display text-4xl font-medium leading-[1.1] text-ink sm:text-5xl">
             {pick(course, "title")}
           </h1>
-          <p className="text-[17px] font-light leading-relaxed text-stone-600">
-            {pick(course, "description")}
-          </p>
+          {paragraphs.length > 0 && (
+            <div className="space-y-4 text-[17px] font-light leading-[1.75] text-stone-600">
+              {paragraphs.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+            </div>
+          )}
           {course.customPrice && (
             <a
               href={siteConfig.social.whatsappCustomPrice}

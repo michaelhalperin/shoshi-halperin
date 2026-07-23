@@ -284,13 +284,11 @@ export default function AdminAbout() {
             <div className="grid gap-5 sm:grid-cols-2">
               <Textarea
                 label={t("aboutIntroEn")}
-                required
                 value={form.introEn}
                 onChange={(e) => setForm({ ...form, introEn: e.target.value })}
               />
               <Textarea
                 label={t("aboutIntroHe")}
-                required
                 dir="rtl"
                 value={form.introHe}
                 onChange={(e) => setForm({ ...form, introHe: e.target.value })}
