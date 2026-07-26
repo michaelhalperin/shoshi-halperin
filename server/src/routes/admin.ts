@@ -2,7 +2,11 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAdmin } from "../auth.js";
 import { getAboutContent, saveAboutContent } from "../about.js";
-import { removeFromGalleryOrder, saveGalleryOrderKeys } from "../gallery.js";
+import {
+  removeFromGalleryOrder,
+  saveGalleryOrderKeys,
+  setGalleryPoster,
+} from "../gallery.js";
 import { prisma } from "../prisma.js";
 import { deleteImage, isS3Configured, keyFromPublicUrl, listImages } from "../s3.js";
 import {
@@ -18,7 +22,7 @@ const mediaOrderSchema = z.object({
   keys: z.array(z.string().min(1)),
 });
 
-const testimonialPosterSchema = z.object({
+const mediaPosterSchema = z.object({
   key: z.string().min(1),
   posterUrl: z.string().url().nullable(),
   focusX: z.number().min(0).max(100).optional(),
@@ -77,6 +81,63 @@ adminRouter.delete("/gallery", async (req, res) => {
   }
 });
 
+adminRouter.put("/gallery/poster", async (req, res) => {
+  const parsed = mediaPosterSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid input" });
+  }
+
+  if (!isS3Configured()) {
+    return res.status(503).json({ error: "Image storage is not configured" });
+  }
+
+  const { key, posterUrl, focusX, focusY, scale } = parsed.data;
+  if (!key.startsWith("gallery/")) {
+    return res.status(400).json({ error: "Invalid gallery item key" });
+  }
+
+  try {
+    const images = await listImages("gallery");
+    const item = images.find((image) => image.key === key);
+    if (!item) {
+      return res.status(400).json({ error: "Gallery item not found" });
+    }
+
+    if (posterUrl) {
+      const posterKey = keyFromPublicUrl(posterUrl);
+      if (item.type === "video") {
+        if (!posterKey || !posterKey.startsWith("gallery-posters/")) {
+          return res.status(400).json({ error: "Invalid poster image URL" });
+        }
+      } else if (posterKey !== key) {
+        return res.status(400).json({ error: "Image framing must use the gallery image itself" });
+      }
+    }
+
+    const saved = await setGalleryPoster(
+      key,
+      posterUrl,
+      posterUrl
+        ? {
+            x: focusX ?? 50,
+            y: focusY ?? 50,
+            scale: scale ?? 1,
+          }
+        : null
+    );
+    res.json({
+      key,
+      posterUrl: saved?.url ?? null,
+      focusX: saved?.focusX ?? null,
+      focusY: saved?.focusY ?? null,
+      scale: saved?.scale ?? null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save gallery poster" });
+  }
+});
+
 adminRouter.put("/testimonials/order", async (req, res) => {
   const parsed = mediaOrderSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -104,7 +165,7 @@ adminRouter.put("/testimonials/order", async (req, res) => {
 });
 
 adminRouter.put("/testimonials/poster", async (req, res) => {
-  const parsed = testimonialPosterSchema.safeParse(req.body);
+  const parsed = mediaPosterSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid input" });
   }

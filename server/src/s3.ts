@@ -5,6 +5,7 @@ export const UPLOAD_FOLDERS = [
   "courses",
   "recipes",
   "gallery",
+  "gallery-posters",
   "testimonials",
   "testimonial-posters",
   "about",

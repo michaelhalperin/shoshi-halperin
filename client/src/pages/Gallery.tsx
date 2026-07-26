@@ -3,6 +3,7 @@ import { api, type GalleryImage } from "../api";
 import { FadeInImage, OrnamentalDivider, Spinner } from "../components/ui";
 import { VideoThumbnail } from "../components/VideoThumbnail";
 import { useI18n } from "../i18n";
+import { posterFrameStyle } from "../testimonialTiles";
 
 const tileLayouts = [
   "col-span-2 row-span-2",
@@ -17,10 +18,21 @@ function GalleryTile({ item, alt }: { item: GalleryImage; alt: string }) {
   if (item.type === "video") {
     return (
       <>
-        <VideoThumbnail
-          src={item.url}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-        />
+        {item.posterUrl ? (
+          <span className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.04]">
+            <FadeInImage
+              src={item.posterUrl}
+              alt={alt}
+              style={posterFrameStyle(item.posterFocusX, item.posterFocusY, item.posterScale)}
+              className="absolute inset-0 h-full w-full"
+            />
+          </span>
+        ) : (
+          <VideoThumbnail
+            src={item.url}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+          />
+        )}
         <span
           className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink/20"
           aria-hidden
@@ -35,12 +47,17 @@ function GalleryTile({ item, alt }: { item: GalleryImage; alt: string }) {
     );
   }
 
+  const framed = Boolean(item.posterUrl);
+
   return (
-    <FadeInImage
-      src={item.url}
-      alt={alt}
-      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-    />
+    <span className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.04]">
+      <FadeInImage
+        src={item.url}
+        alt={alt}
+        style={framed ? posterFrameStyle(item.posterFocusX, item.posterFocusY, item.posterScale) : undefined}
+        className={`absolute inset-0 h-full w-full ${framed ? "" : "object-cover"}`}
+      />
+    </span>
   );
 }
 
@@ -101,7 +118,7 @@ export default function Gallery() {
         <h1 className="mb-6 font-display text-5xl font-medium leading-[1.08] text-ink sm:text-6xl">
           {t("galleryTitle")}
         </h1>
-        <p className="mx-auto text-lg font-light leading-relaxed text-stone-500">
+        <p className="mx-auto whitespace-nowrap text-[clamp(0.7rem,3.4vw,1.125rem)] font-light leading-relaxed text-stone-500">
           {t("galleryHero")}
         </p>
         <OrnamentalDivider className="mt-10" />
@@ -188,6 +205,7 @@ export default function Gallery() {
               ref={videoRef}
               key={selected.key}
               src={selected.url}
+              poster={selected.posterUrl ?? undefined}
               controls
               autoPlay
               playsInline

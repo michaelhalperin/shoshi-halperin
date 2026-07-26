@@ -102,9 +102,28 @@ export default function Layout() {
     };
   }, [location.pathname, finishClose]);
 
-  const navLinkClass = (active: boolean, mobile = false) =>
-    `${mobile ? "px-3 py-2" : ""} text-[13px] font-semibold uppercase tracking-[0.16em] transition-colors ${
+  useEffect(() => {
+    if (!menuVisible) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuVisible, closeMenu]);
+
+  const navLinkClass = (active: boolean) =>
+    `text-[13px] font-semibold uppercase tracking-[0.16em] transition-colors ${
       active ? "text-ink" : "text-clay-600 hover:text-clay-800"
+    }`;
+
+  const mobileNavLinkClass = (active: boolean) =>
+    `block border-b border-stone-200/80 py-3.5 font-display text-[1.65rem] font-medium leading-none transition-colors ${
+      active ? "text-ink" : "text-stone-500 hover:text-ink"
     }`;
 
   const isCoursesActive =
@@ -190,39 +209,46 @@ export default function Layout() {
         {menuVisible && (
           <nav
             id="mobile-nav"
-            className={`scrollbar-hide flex flex-nowrap items-center gap-0 overflow-x-auto border-t border-stone-200 px-3 py-2 md:hidden ${
+            className={`absolute inset-x-0 top-full z-40 border-t border-stone-200 bg-paper px-5 pb-6 pt-2 shadow-sm md:hidden ${
               menuClosing ? "mobile-nav-out" : "mobile-nav-in"
             }`}
             aria-label="Main"
           >
-            <Link to="/" className={`${navLinkClass(isCoursesActive, true)} shrink-0`}>
-              {t("courses")}
-            </Link>
-            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
-            <Link to="/recipes" className={`${navLinkClass(isRecipesActive, true)} shrink-0`}>
-              {t("recipes")}
-            </Link>
-            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
-            <Link to="/shop" className={`${navLinkClass(isShopActive, true)} shrink-0`}>
-              {t("shop")}
-            </Link>
-            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
-            <NavLink to="/gallery" className={({ isActive }) => `${navLinkClass(isActive, true)} shrink-0`}>
-              {t("gallery")}
-            </NavLink>
-            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
-            <NavLink to="/testimonials" className={({ isActive }) => `${navLinkClass(isActive, true)} shrink-0`}>
-              {t("testimonials")}
-            </NavLink>
-            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
-            <NavLink to="/about" className={({ isActive }) => `${navLinkClass(isActive, true)} shrink-0`}>
-              {t("about")}
-            </NavLink>
-            <span className="mx-1 h-3 w-px shrink-0 bg-stone-200" aria-hidden />
-            {langButton("shrink-0 px-3 py-2")}
+            <div className="flex flex-col">
+              <Link to="/" className={mobileNavLinkClass(isCoursesActive)}>
+                {t("courses")}
+              </Link>
+              <Link to="/recipes" className={mobileNavLinkClass(isRecipesActive)}>
+                {t("recipes")}
+              </Link>
+              <Link to="/shop" className={mobileNavLinkClass(isShopActive)}>
+                {t("shop")}
+              </Link>
+              <NavLink to="/gallery" className={({ isActive }) => mobileNavLinkClass(isActive)}>
+                {t("gallery")}
+              </NavLink>
+              <NavLink to="/testimonials" className={({ isActive }) => mobileNavLinkClass(isActive)}>
+                {t("testimonials")}
+              </NavLink>
+              <NavLink to="/about" className={({ isActive }) => mobileNavLinkClass(isActive)}>
+                {t("about")}
+              </NavLink>
+            </div>
+            <div className="mt-5 pt-1">{langButton()}</div>
           </nav>
         )}
       </header>
+
+      {menuVisible && (
+        <button
+          type="button"
+          className={`fixed inset-0 top-16 z-30 bg-ink/45 md:hidden ${
+            menuClosing ? "mobile-nav-backdrop-out" : "mobile-nav-backdrop-in"
+          }`}
+          aria-label={t("closeMenu")}
+          onClick={closeMenu}
+        />
+      )}
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8 sm:px-8">
         <Outlet />

@@ -47,7 +47,7 @@ export default function About() {
           {aboutField(content, "title", lang)}
         </h1>
         {aboutField(content, "intro", lang).trim() && (
-          <p className="mx-auto max-w-lg text-lg font-light leading-relaxed text-stone-500">
+          <p className="mx-auto whitespace-nowrap text-[clamp(0.7rem,3.4vw,1.125rem)] font-light leading-relaxed text-stone-500">
             {aboutField(content, "intro", lang)}
           </p>
         )}

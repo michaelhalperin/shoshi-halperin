@@ -175,6 +175,7 @@ export type UploadFolder =
   | "courses"
   | "recipes"
   | "gallery"
+  | "gallery-posters"
   | "testimonials"
   | "testimonial-posters"
   | "about";

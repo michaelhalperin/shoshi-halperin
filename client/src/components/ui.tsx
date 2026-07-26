@@ -93,7 +93,7 @@ export function ImageUpload({
   color = "amber",
 }: {
   label: string;
-  folder: "courses" | "recipes" | "gallery" | "testimonials" | "testimonial-posters" | "about";
+  folder: "courses" | "recipes" | "gallery" | "gallery-posters" | "testimonials" | "testimonial-posters" | "about";
   value: string;
   onChange: (url: string) => void;
   color?: string;

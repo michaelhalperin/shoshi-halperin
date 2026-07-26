@@ -1,17 +1,63 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma.js";
-import { isS3Configured, listImages, type MediaType } from "./s3.js";
+import {
+  deleteImageByUrl,
+  isS3Configured,
+  listImages,
+  mediaTypeFromKey,
+  type MediaType,
+} from "./s3.js";
+import type { PosterFocus, TestimonialPoster } from "./testimonials.js";
 
 export interface GalleryItem {
   key: string;
   url: string;
   type: MediaType;
   lastModified: string | null;
+  posterUrl: string | null;
+  posterFocusX: number | null;
+  posterFocusY: number | null;
+  posterScale: number | null;
 }
+
+type GalleryPoster = TestimonialPoster;
 
 function parseKeys(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string" && item.length > 0);
+}
+
+function clampFocus(value: unknown, fallback = 50) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(100, Math.max(0, value));
+}
+
+function clampScale(value: unknown, fallback = 1) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  const clamped = Math.min(3, Math.max(0.5, value));
+  return Math.round(clamped * 100) / 100;
+}
+
+function parsePosters(value: unknown): Record<string, GalleryPoster> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const posters: Record<string, GalleryPoster> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (!key) continue;
+    if (typeof entry === "string" && entry.length > 0) {
+      posters[key] = { url: entry, focusX: 50, focusY: 50, scale: 1 };
+      continue;
+    }
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const record = entry as Record<string, unknown>;
+    if (typeof record.url !== "string" || record.url.length === 0) continue;
+    posters[key] = {
+      url: record.url,
+      focusX: clampFocus(record.focusX),
+      focusY: clampFocus(record.focusY),
+      scale: clampScale(record.scale),
+    };
+  }
+  return posters;
 }
 
 export function applyGalleryOrder<T extends { key: string; lastModified: string | null }>(
@@ -42,6 +88,11 @@ export async function getGalleryOrderKeys() {
   return parseKeys(record?.keys);
 }
 
+export async function getGalleryPosters() {
+  const record = await prisma.galleryOrder.findUnique({ where: { id: "default" } });
+  return parsePosters(record?.posters);
+}
+
 export async function saveGalleryOrderKeys(keys: string[]) {
   const saved = await prisma.galleryOrder.upsert({
     where: { id: "default" },
@@ -51,15 +102,98 @@ export async function saveGalleryOrderKeys(keys: string[]) {
   return parseKeys(saved.keys);
 }
 
+async function savePosters(posters: Record<string, GalleryPoster>, existingKeys?: string[]) {
+  const record = await prisma.galleryOrder.findUnique({ where: { id: "default" } });
+  const keys = existingKeys ?? parseKeys(record?.keys);
+  await prisma.galleryOrder.upsert({
+    where: { id: "default" },
+    create: {
+      id: "default",
+      keys: keys as Prisma.InputJsonValue,
+      posters: posters as unknown as Prisma.InputJsonValue,
+    },
+    update: { posters: posters as unknown as Prisma.InputJsonValue },
+  });
+}
+
+export async function setGalleryPoster(
+  videoKey: string,
+  posterUrl: string | null,
+  focus?: PosterFocus | null
+) {
+  const record = await prisma.galleryOrder.findUnique({ where: { id: "default" } });
+  const posters = parsePosters(record?.posters);
+  const previous = posters[videoKey] ?? null;
+
+  if (posterUrl) {
+    posters[videoKey] = {
+      url: posterUrl,
+      focusX: clampFocus(focus?.x, previous?.focusX ?? 50),
+      focusY: clampFocus(focus?.y, previous?.focusY ?? 50),
+      scale: clampScale(focus?.scale, previous?.scale ?? 1),
+    };
+  } else {
+    delete posters[videoKey];
+  }
+
+  await savePosters(posters, record ? parseKeys(record.keys) : []);
+
+  if (previous?.url && previous.url !== posterUrl) {
+    await deleteImageByUrl(previous.url, "gallery-posters");
+  }
+
+  return posters[videoKey] ?? null;
+}
+
 export async function removeFromGalleryOrder(key: string) {
-  const keys = await getGalleryOrderKeys();
-  if (!keys.includes(key)) return;
-  await saveGalleryOrderKeys(keys.filter((item) => item !== key));
+  const record = await prisma.galleryOrder.findUnique({ where: { id: "default" } });
+  const keys = parseKeys(record?.keys);
+  const posters = parsePosters(record?.posters);
+  const poster = posters[key] ?? null;
+  const nextKeys = keys.filter((item) => item !== key);
+  const nextPosters = { ...posters };
+  delete nextPosters[key];
+
+  if (keys.includes(key) || poster) {
+    await prisma.galleryOrder.upsert({
+      where: { id: "default" },
+      create: {
+        id: "default",
+        keys: nextKeys as Prisma.InputJsonValue,
+        posters: nextPosters as unknown as Prisma.InputJsonValue,
+      },
+      update: {
+        keys: nextKeys as Prisma.InputJsonValue,
+        posters: nextPosters as unknown as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  if (poster?.url) {
+    await deleteImageByUrl(poster.url, "gallery-posters");
+  }
 }
 
 export async function listGalleryItems(): Promise<GalleryItem[]> {
   if (!isS3Configured()) return [];
-  const [images, orderedKeys] = await Promise.all([listImages("gallery"), getGalleryOrderKeys()]);
-  if (orderedKeys.length === 0) return images;
-  return applyGalleryOrder(images, orderedKeys);
+  const [images, orderedKeys, posters] = await Promise.all([
+    listImages("gallery"),
+    getGalleryOrderKeys(),
+    getGalleryPosters(),
+  ]);
+  const ordered = orderedKeys.length === 0 ? images : applyGalleryOrder(images, orderedKeys);
+  return ordered.map((image) => {
+    const poster = posters[image.key];
+    return {
+      ...image,
+      posterUrl: poster?.url ?? null,
+      posterFocusX: poster?.focusX ?? null,
+      posterFocusY: poster?.focusY ?? null,
+      posterScale: poster?.scale ?? null,
+    };
+  });
+}
+
+export function isGalleryVideoKey(key: string) {
+  return mediaTypeFromKey(key) === "video";
 }

@@ -71,7 +71,7 @@ export default function Home() {
 
   return (
     <div>
-      <section className="mx-auto max-w-3xl pt-10 pb-10 text-center sm:pt-16 sm:pb-14">
+      <section className="mx-auto max-w-3xl pt-0 pb-10 text-center sm:pb-14">
         <BrandHeading
           before={t("taglineBefore")}
           name={t("taglineName")}
@@ -107,33 +107,42 @@ export default function Home() {
             {filteredCourses.length === 0 ? (
               <p className="pb-10 text-center font-light text-stone-500">{t("noCoursesMatch")}</p>
             ) : (
-              <section className="grid gap-x-8 gap-y-14 pb-10 sm:grid-cols-2 lg:grid-cols-3">
+              <section className="flex flex-col gap-5 pb-10 sm:grid sm:grid-cols-2 sm:gap-x-8 sm:gap-y-14 lg:grid-cols-3">
                 {filteredCourses.map((course) => (
-                  <Link key={course.id} to={courseLink(course.id)} className="group block">
+                  <Link
+                    key={course.id}
+                    to={courseLink(course.id)}
+                    className="group flex gap-4 border-b border-stone-200/80 pb-5 last:border-b-0 last:pb-0 sm:block sm:border-b-0 sm:pb-0"
+                  >
                     <CourseImage
                       imageUrl={course.imageUrl}
                       color={course.color}
                       alt={pick(course, "title")}
-                      className="mb-5 aspect-[4/3]"
+                      className="aspect-square w-[6.75rem] shrink-0 sm:mb-5 sm:aspect-[4/3] sm:w-full"
                     />
-                    <h3 className="mb-2 font-display text-2xl font-semibold leading-snug text-ink transition-colors group-hover:text-clay-700">
-                      {pick(course, "title")}
-                    </h3>
-                    <p className="mb-4 text-[15px] font-light leading-relaxed text-stone-500 line-clamp-2">
-                      {pick(course, "description")}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
-                      <span className="text-clay-700">
-                        {course.customPrice ? t("contactForPrice") : `₪${course.price}`}
-                      </span>
-                      <span className="h-3 w-px bg-stone-300" />
-                      <span>
-                        {course.durationMin} {t("minutes")}
-                      </span>
-                      <span className="h-3 w-px bg-stone-300" />
-                      <span>
-                        {t("upToPeople")} {course.maxParticipants} {t("people")}
-                      </span>
+                    <div className="flex min-w-0 flex-1 flex-col justify-center">
+                      <h3 className="mb-1 font-display text-xl font-semibold leading-snug text-ink transition-colors group-hover:text-clay-700 sm:mb-2 sm:text-2xl">
+                        {pick(course, "title")}
+                      </h3>
+                      <p className="mb-2 text-sm font-light leading-relaxed text-stone-500 line-clamp-2 sm:mb-4 sm:text-[15px]">
+                        {pick(course, "description")}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 sm:gap-4 sm:text-xs">
+                        <span className="text-clay-700">
+                          {course.customPrice ? t("contactForPrice") : `₪${course.price}`}
+                        </span>
+                        <span className="text-stone-300 sm:hidden" aria-hidden>
+                          ·
+                        </span>
+                        <span className="hidden h-3 w-px bg-stone-300 sm:block" aria-hidden />
+                        <span>
+                          {course.durationMin} {t("minutes")}
+                        </span>
+                        <span className="hidden h-3 w-px bg-stone-300 sm:block" aria-hidden />
+                        <span className="hidden sm:inline">
+                          {t("upToPeople")} {course.maxParticipants} {t("people")}
+                        </span>
+                      </div>
                     </div>
                   </Link>
                 ))}
