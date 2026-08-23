@@ -2,10 +2,11 @@ import { Router } from "express";
 import { z } from "zod";
 import { getAboutContent } from "../about.js";
 import { isS3Configured, listImages } from "../s3.js";
+import { publicCache } from "../publicCache.js";
 
 export const aboutRouter = Router();
 
-aboutRouter.get("/", async (_req, res) => {
+aboutRouter.get("/", publicCache(300), async (_req, res) => {
   try {
     const [content, imageUrl] = await Promise.all([
       getAboutContent(),

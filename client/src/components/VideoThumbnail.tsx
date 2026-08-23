@@ -42,7 +42,7 @@ export function VideoThumbnail({ src, className = "", draggable }: VideoThumbnai
       src={withTimeFragment(src)}
       muted
       playsInline
-      preload="auto"
+      preload="metadata"
       aria-hidden
       draggable={draggable}
       onPlay={(event) => {

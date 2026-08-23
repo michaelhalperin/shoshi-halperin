@@ -1,5 +1,6 @@
 import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomBytes } from "crypto";
+import { cached, invalidateCache } from "./memoryCache.js";
 
 export const UPLOAD_FOLDERS = [
   "courses",
@@ -11,6 +12,20 @@ export const UPLOAD_FOLDERS = [
   "about",
 ] as const;
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
+
+const S3_LIST_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function s3ListCacheKey(folder: UploadFolder) {
+  return `s3:list:${folder}`;
+}
+
+export function invalidateS3ListCache(folder?: UploadFolder) {
+  if (folder) {
+    invalidateCache(s3ListCacheKey(folder));
+    return;
+  }
+  invalidateCache(/^s3:list:/);
+}
 
 const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
@@ -128,10 +143,11 @@ export async function uploadFile(folder: UploadFolder, file: Express.Multer.File
     })
   );
 
+  invalidateS3ListCache(folder);
   return { key, url: publicUrlForKey(key), type };
 }
 
-export async function listImages(folder: UploadFolder) {
+async function fetchImages(folder: UploadFolder) {
   const prefix = `${folder}/`;
   const response = await getClient().send(
     new ListObjectsV2Command({
@@ -151,6 +167,10 @@ export async function listImages(folder: UploadFolder) {
     .sort((a, b) => (b.lastModified ?? "").localeCompare(a.lastModified ?? ""));
 }
 
+export async function listImages(folder: UploadFolder) {
+  return cached(s3ListCacheKey(folder), S3_LIST_CACHE_TTL_MS, () => fetchImages(folder));
+}
+
 export async function deleteImage(key: string, folder: UploadFolder) {
   if (!key.startsWith(`${folder}/`)) {
     throw new Error("Invalid image key");
@@ -162,6 +182,8 @@ export async function deleteImage(key: string, folder: UploadFolder) {
       Key: key,
     })
   );
+
+  invalidateS3ListCache(folder);
 }
 
 /** Extract an S3 object key from a stored public URL, if it belongs to this bucket. */

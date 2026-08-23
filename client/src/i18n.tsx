@@ -169,7 +169,6 @@ const dictionaries = {
     recipeContent: "Ingredients & steps",
     recipeContentPlaceholder:
       "Paste or type your ingredients and steps in any format. For example:\n\nIngredients:\n2 cups flour\n3 eggs\n\nSteps:\nMix dry ingredients\nBake at 180°C for 25 minutes",
-    recipeContentHint: "Write freely — AI will sort ingredients and steps into English and Hebrew.",
     organizeWithAi: "Organize with AI",
     organizing: "Organizing…",
     recipeParsed: "Organized — review below before saving",
@@ -193,6 +192,7 @@ const dictionaries = {
     when: "When",
     status: "Status",
     footer: "Book your next course today.",
+    createdBy: "Created by",
     about: "About",
     aboutPhotoAlt: "Shoshi Halperin in the kitchen",
     aboutHighlightsTitle: "What to expect",
@@ -430,7 +430,6 @@ const dictionaries = {
     recipeContent: "מרכיבים והוראות הכנה",
     recipeContentPlaceholder:
       "הדביקו או כתבו מרכיבים והוראות הכנה בכל פורמט. לדוגמה:\n\nמרכיבים:\n2 כוסות קמח\n3 ביצים\n\nהוראות:\nלערבב את המרכיבים היבשים\nלאפות ב-180 מעלות ל-25 דקות",
-    recipeContentHint: "כתבו בחופשיות — הבינה המלאכותית תסדר את המרכיבים והשלבים לאנגלית ולעברית.",
     organizeWithAi: "סידור עם AI",
     organizing: "מסדר…",
     recipeParsed: "סודר — בדקו למטה לפני השמירה",
@@ -454,6 +453,7 @@ const dictionaries = {
     when: "מתי",
     status: "סטטוס",
     footer: "קבעו את הסדנה הבאה שלכם עוד היום.",
+    createdBy: "נוצר על ידי",
     about: "אודות",
     aboutPhotoAlt: "שושי הלפרין במטבח",
     aboutHighlightsTitle: "מה מחכה לכם",

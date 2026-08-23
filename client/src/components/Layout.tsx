@@ -275,21 +275,25 @@ export default function Layout() {
             )}
           </div>
 
-          <div className="mt-4 flex items-center justify-between border-t border-stone-200/80 pt-3">
-            <p className="text-[11px] text-stone-400">
-              © {new Date().getFullYear()} {t("appName")}
-              <span className="mx-1.5 text-stone-300" aria-hidden>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-stone-200/80 pt-3">
+            <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[11px] text-stone-400">
+              <span>
+                © {new Date().getFullYear()} {t("appName")}
+              </span>
+              <span className="text-stone-300" aria-hidden>
                 ·
               </span>
-              made with ❤️ by{" "}
-              <a
-                href={siteConfig.credit.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-stone-500 transition-colors hover:text-clay-700"
-              >
-                {siteConfig.credit.name}
-              </a>
+              <span className="inline-flex items-center gap-1">
+                {t("createdBy")}
+                <a
+                  href={siteConfig.credit.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-clay-600 underline decoration-clay-300/80 underline-offset-[3px] transition-colors hover:text-clay-800 hover:decoration-clay-500"
+                >
+                  {siteConfig.credit.name}
+                </a>
+              </span>
             </p>
             <Link
               to={isAdmin ? "/admin" : "/login"}

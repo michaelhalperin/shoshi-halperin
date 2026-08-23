@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { listTestimonialItems } from "../testimonials.js";
+import { publicCache } from "../publicCache.js";
 
 export const testimonialsRouter = Router();
 
-testimonialsRouter.get("/", async (_req, res) => {
+testimonialsRouter.get("/", publicCache(300), async (_req, res) => {
   try {
     const images = await listTestimonialItems();
     res.json({ images });

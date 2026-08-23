@@ -363,7 +363,7 @@ export default function AdminRecipes() {
               <Textarea
                 label={t("recipeContent")}
                 required
-                rows={10}
+                rows={5}
                 value={rawContent}
                 placeholder={t("recipeContentPlaceholder")}
                 onChange={(e) => {
@@ -371,7 +371,6 @@ export default function AdminRecipes() {
                   setParseError("");
                 }}
               />
-              <p className="mt-2 text-sm font-light text-stone-500">{t("recipeContentHint")}</p>
               <div className="mt-3 flex justify-end">
                 <Button
                   type="button"
@@ -398,27 +397,31 @@ export default function AdminRecipes() {
               onChange={(imageUrl) => setForm({ ...form, imageUrl })}
               color={form.color}
             />
-            <Select
-              label={t("linkedCourseOptional")}
-              value={form.courseId}
-              onChange={(e) => setForm({ ...form, courseId: e.target.value })}
-            >
-              <option value="">{t("noLinkedCourse")}</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {pick(course, "title")}
-                </option>
-              ))}
-            </Select>
-            <label className="flex items-center gap-2 text-sm font-medium text-stone-600">
-              <input
-                type="checkbox"
-                checked={form.active}
-                onChange={(e) => setForm({ ...form, active: e.target.checked })}
-                className="h-4 w-4 accent-clay-600"
-              />
-              {t("active")}
-            </label>
+            <div className="flex items-end gap-4">
+              <div className="min-w-0 flex-1">
+                <Select
+                  label={t("linkedCourseOptional")}
+                  value={form.courseId}
+                  onChange={(e) => setForm({ ...form, courseId: e.target.value })}
+                >
+                  <option value="">{t("noLinkedCourse")}</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {pick(course, "title")}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <label className="flex shrink-0 items-center gap-2 pb-2 text-sm font-medium text-stone-600">
+                <input
+                  type="checkbox"
+                  checked={form.active}
+                  onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                  className="h-4 w-4 accent-clay-600"
+                />
+                {t("active")}
+              </label>
+            </div>
             {error && <ErrorNote message={error} />}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setEditing(null)}>

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "../auth.js";
 import { prisma } from "../prisma.js";
 import { withAttributedUrl } from "../shopLinks.js";
+import { publicCache } from "../publicCache.js";
 
 export const shopLinksRouter = Router();
 
@@ -22,7 +23,7 @@ const shopLinkSchema = z.object({
   sortOrder: z.number().int().default(0),
 });
 
-shopLinksRouter.get("/", async (req, res) => {
+shopLinksRouter.get("/", publicCache(60), async (req, res) => {
   const includeInactive = req.query.all === "1";
   const links = await prisma.shopLink.findMany({
     where: includeInactive ? {} : { active: true },

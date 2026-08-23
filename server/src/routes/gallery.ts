@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { listGalleryItems } from "../gallery.js";
+import { publicCache } from "../publicCache.js";
 
 export const galleryRouter = Router();
 
-galleryRouter.get("/", async (_req, res) => {
+galleryRouter.get("/", publicCache(300), async (_req, res) => {
   try {
     const images = await listGalleryItems();
     res.json({ images });

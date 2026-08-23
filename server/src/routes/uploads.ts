@@ -1,6 +1,8 @@
 import { Router } from "express";
 import multer from "multer";
 import { isS3Configured, MAX_UPLOAD_SIZE, UPLOAD_FOLDERS, deleteImage, listImages, uploadFile, type UploadFolder } from "../s3.js";
+import { invalidateGalleryItemsCache } from "../gallery.js";
+import { invalidateTestimonialItemsCache } from "../testimonials.js";
 
 export const uploadsRouter = Router();
 
@@ -43,6 +45,13 @@ uploadsRouter.post("/upload", (req, res, next) => {
           .filter((image) => image.key !== result.key)
           .map((image) => deleteImage(image.key, "about"))
       );
+    }
+
+    if (folder === "gallery" || folder === "gallery-posters") {
+      invalidateGalleryItemsCache();
+    }
+    if (folder === "testimonials" || folder === "testimonial-posters") {
+      invalidateTestimonialItemsCache();
     }
 
     res.json(result);

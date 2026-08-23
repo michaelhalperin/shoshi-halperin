@@ -3,24 +3,47 @@ import { z } from "zod";
 import { requireAdmin } from "../auth.js";
 import { prisma } from "../prisma.js";
 import { deleteImageByUrl } from "../s3.js";
+import { publicCache } from "../publicCache.js";
 
 export const recipesRouter = Router();
 
-recipesRouter.get("/", async (req, res) => {
+const recipeListSelect = {
+  id: true,
+  titleEn: true,
+  titleHe: true,
+  descriptionEn: true,
+  descriptionHe: true,
+  imageUrl: true,
+  color: true,
+  active: true,
+  courseId: true,
+  course: { select: { id: true, titleEn: true, titleHe: true } },
+} as const;
+
+recipesRouter.get("/", publicCache(60), async (req, res) => {
   const includeInactive = req.query.all === "1";
   const courseId = typeof req.query.courseId === "string" ? req.query.courseId : undefined;
-  const recipes = await prisma.recipe.findMany({
-    where: {
-      ...(includeInactive ? {} : { active: true }),
-      ...(courseId ? { courseId } : {}),
-    },
-    orderBy: { createdAt: "asc" },
-    include: { course: { select: { id: true, titleEn: true, titleHe: true } } },
-  });
+  const where = {
+    ...(includeInactive ? {} : { active: true }),
+    ...(courseId ? { courseId } : {}),
+  };
+
+  const recipes = includeInactive
+    ? await prisma.recipe.findMany({
+        where,
+        orderBy: { createdAt: "asc" },
+        include: { course: { select: { id: true, titleEn: true, titleHe: true } } },
+      })
+    : await prisma.recipe.findMany({
+        where,
+        orderBy: { createdAt: "asc" },
+        select: recipeListSelect,
+      });
+
   res.json({ recipes });
 });
 
-recipesRouter.get("/:id", async (req, res) => {
+recipesRouter.get("/:id", publicCache(60), async (req, res) => {
   const recipe = await prisma.recipe.findUnique({
     where: { id: req.params.id },
     include: { course: { select: { id: true, titleEn: true, titleHe: true } } },

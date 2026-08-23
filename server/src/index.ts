@@ -1,4 +1,5 @@
 import "dotenv/config";
+import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -25,6 +26,7 @@ const clientOrigins = (process.env.CLIENT_URL ?? "http://localhost:5173")
   .filter(Boolean);
 
 app.set("trust proxy", 1);
+app.use(compression());
 app.use(
   cors({
     origin(origin, callback) {

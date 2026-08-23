@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { applyGalleryOrder } from "./gallery.js";
+import { cached, invalidateCache } from "./memoryCache.js";
 import { prisma } from "./prisma.js";
 import {
   deleteImageByUrl,
@@ -8,6 +9,13 @@ import {
   mediaTypeFromKey,
   type MediaType,
 } from "./s3.js";
+
+const TESTIMONIAL_ITEMS_CACHE_KEY = "testimonials:items";
+const TESTIMONIAL_ITEMS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+export function invalidateTestimonialItemsCache() {
+  invalidateCache(TESTIMONIAL_ITEMS_CACHE_KEY);
+}
 
 export interface PosterFocus {
   x: number;
@@ -87,6 +95,7 @@ export async function saveTestimonialOrderKeys(keys: string[]) {
     create: { id: "default", keys: keys as Prisma.InputJsonValue },
     update: { keys: keys as Prisma.InputJsonValue },
   });
+  invalidateTestimonialItemsCache();
   return parseKeys(saved.keys);
 }
 
@@ -133,6 +142,7 @@ export async function setTestimonialPoster(
     await deleteImageByUrl(previous.url, "testimonial-posters");
   }
 
+  invalidateTestimonialItemsCache();
   return posters[videoKey] ?? null;
 }
 
@@ -163,9 +173,11 @@ export async function removeFromTestimonialOrder(key: string) {
   if (poster?.url) {
     await deleteImageByUrl(poster.url, "testimonial-posters");
   }
+
+  invalidateTestimonialItemsCache();
 }
 
-export async function listTestimonialItems(): Promise<TestimonialItem[]> {
+async function buildTestimonialItems(): Promise<TestimonialItem[]> {
   if (!isS3Configured()) return [];
   const [images, orderedKeys, posters] = await Promise.all([
     listImages("testimonials"),
@@ -183,6 +195,10 @@ export async function listTestimonialItems(): Promise<TestimonialItem[]> {
       posterScale: poster?.scale ?? null,
     };
   });
+}
+
+export async function listTestimonialItems(): Promise<TestimonialItem[]> {
+  return cached(TESTIMONIAL_ITEMS_CACHE_KEY, TESTIMONIAL_ITEMS_CACHE_TTL_MS, buildTestimonialItems);
 }
 
 export function isTestimonialVideoKey(key: string) {

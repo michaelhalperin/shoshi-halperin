@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { cached, invalidateCache } from "./memoryCache.js";
 import { prisma } from "./prisma.js";
 import {
   deleteImageByUrl,
@@ -8,6 +9,13 @@ import {
   type MediaType,
 } from "./s3.js";
 import type { PosterFocus, TestimonialPoster } from "./testimonials.js";
+
+const GALLERY_ITEMS_CACHE_KEY = "gallery:items";
+const GALLERY_ITEMS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+export function invalidateGalleryItemsCache() {
+  invalidateCache(GALLERY_ITEMS_CACHE_KEY);
+}
 
 export interface GalleryItem {
   key: string;
@@ -99,6 +107,7 @@ export async function saveGalleryOrderKeys(keys: string[]) {
     create: { id: "default", keys: keys as Prisma.InputJsonValue },
     update: { keys: keys as Prisma.InputJsonValue },
   });
+  invalidateGalleryItemsCache();
   return parseKeys(saved.keys);
 }
 
@@ -142,6 +151,7 @@ export async function setGalleryPoster(
     await deleteImageByUrl(previous.url, "gallery-posters");
   }
 
+  invalidateGalleryItemsCache();
   return posters[videoKey] ?? null;
 }
 
@@ -172,9 +182,11 @@ export async function removeFromGalleryOrder(key: string) {
   if (poster?.url) {
     await deleteImageByUrl(poster.url, "gallery-posters");
   }
+
+  invalidateGalleryItemsCache();
 }
 
-export async function listGalleryItems(): Promise<GalleryItem[]> {
+async function buildGalleryItems(): Promise<GalleryItem[]> {
   if (!isS3Configured()) return [];
   const [images, orderedKeys, posters] = await Promise.all([
     listImages("gallery"),
@@ -192,6 +204,10 @@ export async function listGalleryItems(): Promise<GalleryItem[]> {
       posterScale: poster?.scale ?? null,
     };
   });
+}
+
+export async function listGalleryItems(): Promise<GalleryItem[]> {
+  return cached(GALLERY_ITEMS_CACHE_KEY, GALLERY_ITEMS_CACHE_TTL_MS, buildGalleryItems);
 }
 
 export function isGalleryVideoKey(key: string) {

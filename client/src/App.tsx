@@ -1,19 +1,8 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth";
 import Layout from "./components/Layout";
 import { Spinner } from "./components/ui";
-import AdminAbout from "./pages/admin/AdminAbout";
-import AdminBookings from "./pages/admin/AdminBookings";
-import AdminCoupons from "./pages/admin/AdminCoupons";
-import AdminCourses from "./pages/admin/AdminCourses";
-import AdminGallery from "./pages/admin/AdminGallery";
-import AdminLayout from "./pages/admin/AdminLayout";
-import AdminRecipes from "./pages/admin/AdminRecipes";
-import AdminShopLinks from "./pages/admin/AdminShopLinks";
-import AdminSlots from "./pages/admin/AdminSlots";
-import AdminTestimonials from "./pages/admin/AdminTestimonials";
-import Dashboard from "./pages/admin/Dashboard";
 import About from "./pages/About";
 import CourseDetail from "./pages/CourseDetail";
 import Gallery from "./pages/Gallery";
@@ -28,12 +17,24 @@ import Shop from "./pages/Shop";
 import Recipes from "./pages/Recipes";
 import Testimonials from "./pages/Testimonials";
 
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
+const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
+const AdminRecipes = lazy(() => import("./pages/admin/AdminRecipes"));
+const AdminGallery = lazy(() => import("./pages/admin/AdminGallery"));
+const AdminTestimonials = lazy(() => import("./pages/admin/AdminTestimonials"));
+const AdminAbout = lazy(() => import("./pages/admin/AdminAbout"));
+const AdminSlots = lazy(() => import("./pages/admin/AdminSlots"));
+const AdminBookings = lazy(() => import("./pages/admin/AdminBookings"));
+const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
+const AdminShopLinks = lazy(() => import("./pages/admin/AdminShopLinks"));
+
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <Spinner />;
   if (!user || user.role !== "admin") return <Navigate to="/login" replace />;
   if (user.mustSetPassword) return <Navigate to="/set-password" replace />;
-  return <>{children}</>;
+  return <Suspense fallback={<Spinner />}>{children}</Suspense>;
 }
 
 function RequireAuth({ children }: { children: ReactNode }) {

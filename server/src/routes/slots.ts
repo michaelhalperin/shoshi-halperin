@@ -2,16 +2,26 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAdmin } from "../auth.js";
 import { prisma } from "../prisma.js";
+import { publicCache } from "../publicCache.js";
 
 export const slotsRouter = Router();
 
+function sixMonthsFromNow() {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 6);
+  return date;
+}
+
 // List slots for a course (public) — includes how many spots are taken.
-slotsRouter.get("/", async (req, res) => {
+slotsRouter.get("/", publicCache(30), async (req, res) => {
   const courseId = typeof req.query.courseId === "string" ? req.query.courseId : undefined;
   const slots = await prisma.timeSlot.findMany({
     where: {
       ...(courseId ? { courseId } : {}),
-      startsAt: { gte: new Date() },
+      startsAt: {
+        gte: new Date(),
+        ...(courseId ? {} : { lte: sixMonthsFromNow() }),
+      },
     },
     orderBy: { startsAt: "asc" },
     include: {

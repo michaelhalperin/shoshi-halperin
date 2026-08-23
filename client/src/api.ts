@@ -12,8 +12,46 @@ const API_BASE = import.meta.env.PROD
   : ((import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "");
 
 const REQUEST_TIMEOUT_MS = 60_000;
+const GET_CACHE_TTL_MS = 60_000;
+
+type CacheEntry = { data: unknown; expiresAt: number };
+const getCache = new Map<string, CacheEntry>();
+
+function isCacheableGet(path: string) {
+  if (!path.startsWith("/api/")) return false;
+  if (path.startsWith("/api/auth")) return false;
+  if (path.startsWith("/api/admin")) return false;
+  if (path.startsWith("/api/bookings")) return false;
+  if (path.includes("all=1")) return false;
+  return true;
+}
+
+function getCachedGet<T>(path: string): T | undefined {
+  const entry = getCache.get(path);
+  if (!entry || Date.now() > entry.expiresAt) {
+    getCache.delete(path);
+    return undefined;
+  }
+  return entry.data as T;
+}
+
+function setCachedGet(path: string, data: unknown) {
+  getCache.set(path, { data, expiresAt: Date.now() + GET_CACHE_TTL_MS });
+}
+
+function invalidateGetCache() {
+  getCache.clear();
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const method = options.method ?? "GET";
+  if (method !== "GET") invalidateGetCache();
+
+  if (method === "GET" && isCacheableGet(path)) {
+    const cached = getCachedGet<T>(path);
+    if (cached !== undefined) return cached;
+  }
+
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
@@ -25,6 +63,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new ApiError(res.status, data.error ?? "Request failed");
+    if (method === "GET" && isCacheableGet(path)) {
+      setCachedGet(path, data);
+    }
     return data as T;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
@@ -44,6 +85,7 @@ export const api = {
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   upload: async <T>(path: string, formData: FormData) => {
+    invalidateGetCache();
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
@@ -101,10 +143,10 @@ export interface Recipe {
   titleHe: string;
   descriptionEn: string;
   descriptionHe: string;
-  ingredientsEn: string;
-  ingredientsHe: string;
-  stepsEn: string;
-  stepsHe: string;
+  ingredientsEn?: string;
+  ingredientsHe?: string;
+  stepsEn?: string;
+  stepsHe?: string;
   imageUrl?: string | null;
   color: string;
   active: boolean;

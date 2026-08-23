@@ -3,10 +3,11 @@ import { z } from "zod";
 import { requireAdmin } from "../auth.js";
 import { prisma } from "../prisma.js";
 import { deleteImageByUrl } from "../s3.js";
+import { publicCache } from "../publicCache.js";
 
 export const coursesRouter = Router();
 
-coursesRouter.get("/", async (req, res) => {
+coursesRouter.get("/", publicCache(60), async (req, res) => {
   const includeInactive = req.query.all === "1";
   const courses = await prisma.course.findMany({
     where: includeInactive ? {} : { active: true },
@@ -16,7 +17,7 @@ coursesRouter.get("/", async (req, res) => {
   res.json({ courses });
 });
 
-coursesRouter.get("/:id", async (req, res) => {
+coursesRouter.get("/:id", publicCache(60), async (req, res) => {
   const course = await prisma.course.findUnique({ where: { id: req.params.id } });
   if (!course) return res.status(404).json({ error: "Course not found" });
   res.json({ course });
