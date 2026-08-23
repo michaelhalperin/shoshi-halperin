@@ -15,8 +15,13 @@ import {
   saveTestimonialOrderKeys,
   setTestimonialPoster,
 } from "../testimonials.js";
+import { isRecipeAiConfigured, parseRecipeContent } from "../recipeAi.js";
 import { aboutContentSchema } from "./about.js";
 import { uploadsRouter } from "./uploads.js";
+
+const recipeParseSchema = z.object({
+  content: z.string().min(1),
+});
 
 const mediaOrderSchema = z.object({
   keys: z.array(z.string().min(1)),
@@ -34,6 +39,26 @@ export const adminRouter = Router();
 
 adminRouter.use(requireAdmin);
 adminRouter.use(uploadsRouter);
+
+adminRouter.post("/recipes/parse", async (req, res) => {
+  const parsed = recipeParseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid input" });
+  }
+
+  if (!isRecipeAiConfigured()) {
+    return res.status(503).json({ error: "AI is not configured" });
+  }
+
+  try {
+    const recipe = await parseRecipeContent(parsed.data.content);
+    res.json({ recipe });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to parse recipe";
+    console.error("Recipe AI parse error:", err);
+    res.status(422).json({ error: message });
+  }
+});
 
 adminRouter.put("/gallery/order", async (req, res) => {
   const parsed = mediaOrderSchema.safeParse(req.body);

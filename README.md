@@ -115,5 +115,7 @@ The build runs migrations (`db push`) and seeds sample data on each deploy. Set 
 | `AWS_SECRET_ACCESS_KEY` | Render | IAM user secret key for S3 uploads |
 | `RESEND_API_KEY` | Render | Resend API key for password reset emails |
 | `RESEND_FROM` | Render | Verified sender address in Resend |
+| `OPENAI_API_KEY` | Render | OpenAI API key for AI recipe parsing in admin |
+| `OPENAI_MODEL` | Render | Optional OpenAI model override (default: `gpt-4o-mini`) |
 
 Local copies: `server/.env.example`, `client/.env.example`.

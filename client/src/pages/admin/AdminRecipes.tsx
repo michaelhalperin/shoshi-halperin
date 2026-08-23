@@ -11,7 +11,6 @@ import {
   Modal,
   Select,
   Spinner,
-  ListEditor,
   Textarea,
 } from "../../components/ui";
 import { useI18n } from "../../i18n";
@@ -41,14 +40,94 @@ function normalizeList(text: string): string {
     .join("\n");
 }
 
+function formToRawContent(form: RecipeForm): string {
+  const sections: string[] = [];
+  if (form.ingredientsEn.trim()) {
+    sections.push("Ingredients (English):");
+    sections.push(form.ingredientsEn);
+  }
+  if (form.ingredientsHe.trim()) {
+    sections.push("\nIngredients (Hebrew):");
+    sections.push(form.ingredientsHe);
+  }
+  if (form.stepsEn.trim()) {
+    sections.push("\nSteps (English):");
+    sections.push(form.stepsEn);
+  }
+  if (form.stepsHe.trim()) {
+    sections.push("\nSteps (Hebrew):");
+    sections.push(form.stepsHe);
+  }
+  return sections.join("\n").trim();
+}
+
+function hasParsedContent(form: RecipeForm): boolean {
+  return Boolean(
+    form.ingredientsEn.trim() &&
+      form.ingredientsHe.trim() &&
+      form.stepsEn.trim() &&
+      form.stepsHe.trim()
+  );
+}
+
+function formatPreviewLines(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function RecipeParsePreview({ form }: { form: RecipeForm }) {
+  const { t } = useI18n();
+  const sections = [
+    { label: t("ingredientsEn"), lines: formatPreviewLines(form.ingredientsEn), dir: undefined },
+    { label: t("ingredientsHe"), lines: formatPreviewLines(form.ingredientsHe), dir: "rtl" as const },
+    { label: t("stepsEn"), lines: formatPreviewLines(form.stepsEn), dir: undefined, numbered: true },
+    { label: t("stepsHe"), lines: formatPreviewLines(form.stepsHe), dir: "rtl" as const, numbered: true },
+  ];
+
+  return (
+    <div className="space-y-4 rounded-xl border border-clay-200 bg-clay-50/60 p-4">
+      <p className="text-sm font-medium text-clay-700">{t("recipeParsed")}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {sections.map(({ label, lines, dir, numbered }) => (
+          <div key={label}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">{label}</p>
+            {numbered ? (
+              <ol className="list-decimal space-y-1 ps-5 text-sm text-stone-700" dir={dir}>
+                {lines.map((line, index) => (
+                  <li key={index}>{line}</li>
+                ))}
+              </ol>
+            ) : (
+              <ul className="space-y-1 text-sm text-stone-700" dir={dir}>
+                {lines.map((line, index) => (
+                  <li key={index} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-clay-500" aria-hidden />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminRecipes() {
   const { t, pick } = useI18n();
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [editing, setEditing] = useState<Recipe | "new" | null>(null);
   const [form, setForm] = useState<RecipeForm>(emptyForm);
+  const [rawContent, setRawContent] = useState("");
+  const [parsedFromRaw, setParsedFromRaw] = useState("");
   const [error, setError] = useState("");
+  const [parseError, setParseError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [parseBusy, setParseBusy] = useState(false);
   const [deleting, setDeleting] = useState<Recipe | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -64,12 +143,15 @@ export default function AdminRecipes() {
 
   const openNew = () => {
     setForm(emptyForm);
+    setRawContent("");
+    setParsedFromRaw("");
     setError("");
+    setParseError("");
     setEditing("new");
   };
 
   const openEdit = (recipe: Recipe) => {
-    setForm({
+    const nextForm = {
       titleEn: recipe.titleEn,
       titleHe: recipe.titleHe,
       descriptionEn: recipe.descriptionEn,
@@ -82,23 +164,73 @@ export default function AdminRecipes() {
       color: recipe.color,
       active: recipe.active,
       courseId: recipe.courseId ?? "",
-    });
+    };
+    setForm(nextForm);
+    setRawContent(formToRawContent(nextForm));
+    setParsedFromRaw(formToRawContent(nextForm));
     setError("");
+    setParseError("");
     setEditing(recipe);
+  };
+
+  const parseContent = async (): Promise<
+    Pick<RecipeForm, "ingredientsEn" | "ingredientsHe" | "stepsEn" | "stepsHe"> | null
+  > => {
+    const content = rawContent.trim();
+    if (!content) {
+      setParseError(t("recipeParseRequired"));
+      return null;
+    }
+
+    setParseError("");
+    setParseBusy(true);
+    try {
+      const result = await api.post<{
+        recipe: Pick<RecipeForm, "ingredientsEn" | "ingredientsHe" | "stepsEn" | "stepsHe">;
+      }>("/api/admin/recipes/parse", { content });
+      setForm((current) => ({ ...current, ...result.recipe }));
+      setParsedFromRaw(content);
+      return result.recipe;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 503) {
+        setParseError(t("aiNotConfigured"));
+      } else {
+        setParseError(err instanceof ApiError ? err.message : t("errorGeneric"));
+      }
+      return null;
+    } finally {
+      setParseBusy(false);
+    }
   };
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setParseError("");
+
+    const trimmedRaw = rawContent.trim();
+    const needsParse =
+      Boolean(trimmedRaw) && (!hasParsedContent(form) || trimmedRaw !== parsedFromRaw);
+
+    let workingForm = form;
+    if (needsParse) {
+      const parsed = await parseContent();
+      if (!parsed) return;
+      workingForm = { ...form, ...parsed };
+    } else if (!hasParsedContent(form)) {
+      setParseError(t("recipeParseRequired"));
+      return;
+    }
+
     setBusy(true);
     const payload = {
-      ...form,
-      ingredientsEn: normalizeList(form.ingredientsEn),
-      ingredientsHe: normalizeList(form.ingredientsHe),
-      stepsEn: normalizeList(form.stepsEn),
-      stepsHe: normalizeList(form.stepsHe),
-      imageUrl: form.imageUrl.trim() || null,
-      courseId: form.courseId || null,
+      ...workingForm,
+      ingredientsEn: normalizeList(workingForm.ingredientsEn),
+      ingredientsHe: normalizeList(workingForm.ingredientsHe),
+      stepsEn: normalizeList(workingForm.stepsEn),
+      stepsHe: normalizeList(workingForm.stepsHe),
+      imageUrl: workingForm.imageUrl.trim() || null,
+      courseId: workingForm.courseId || null,
     };
     try {
       if (editing === "new") {
@@ -227,44 +359,38 @@ export default function AdminRecipes() {
               value={form.descriptionHe}
               onChange={(e) => setForm({ ...form, descriptionHe: e.target.value })}
             />
-            <ListEditor
-              label={t("ingredientsEn")}
-              variant="bullet"
-              placeholder={t("ingredientPlaceholder")}
-              addLabel={t("addIngredient")}
-              removeLabel={t("removeItem")}
-              value={form.ingredientsEn}
-              onChange={(ingredientsEn) => setForm({ ...form, ingredientsEn })}
-            />
-            <ListEditor
-              label={t("ingredientsHe")}
-              variant="bullet"
-              dir="rtl"
-              placeholder={t("ingredientPlaceholder")}
-              addLabel={t("addIngredient")}
-              removeLabel={t("removeItem")}
-              value={form.ingredientsHe}
-              onChange={(ingredientsHe) => setForm({ ...form, ingredientsHe })}
-            />
-            <ListEditor
-              label={t("stepsEn")}
-              variant="numbered"
-              placeholder={t("stepPlaceholder")}
-              addLabel={t("addStep")}
-              removeLabel={t("removeItem")}
-              value={form.stepsEn}
-              onChange={(stepsEn) => setForm({ ...form, stepsEn })}
-            />
-            <ListEditor
-              label={t("stepsHe")}
-              variant="numbered"
-              dir="rtl"
-              placeholder={t("stepPlaceholder")}
-              addLabel={t("addStep")}
-              removeLabel={t("removeItem")}
-              value={form.stepsHe}
-              onChange={(stepsHe) => setForm({ ...form, stepsHe })}
-            />
+            <div>
+              <Textarea
+                label={t("recipeContent")}
+                required
+                rows={10}
+                value={rawContent}
+                placeholder={t("recipeContentPlaceholder")}
+                onChange={(e) => {
+                  setRawContent(e.target.value);
+                  setParseError("");
+                }}
+              />
+              <p className="mt-2 text-sm font-light text-stone-500">{t("recipeContentHint")}</p>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={parseBusy || !rawContent.trim()}
+                  onClick={() => void parseContent()}
+                >
+                  {parseBusy ? t("organizing") : t("organizeWithAi")}
+                </Button>
+              </div>
+              {parseError && (
+                <div className="mt-3">
+                  <ErrorNote message={parseError} />
+                </div>
+              )}
+            </div>
+            {hasParsedContent(form) && rawContent.trim() === parsedFromRaw && (
+              <RecipeParsePreview form={form} />
+            )}
             <ImageUpload
               label={t("image")}
               folder="recipes"
@@ -298,7 +424,7 @@ export default function AdminRecipes() {
               <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
                 {t("cancel")}
               </Button>
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" disabled={busy || parseBusy}>
                 {t("save")}
               </Button>
             </div>
