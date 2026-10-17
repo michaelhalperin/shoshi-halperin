@@ -11,7 +11,7 @@ import {
   POSTER_SCALE_STEP,
   posterFrameStyle,
 } from "../testimonialTiles";
-import { Button, ErrorNote, Modal } from "./ui";
+import { Button, ErrorNote, Modal, ModalActions } from "./ui";
 
 export function PosterArrangeModal({
   image,
@@ -182,14 +182,14 @@ export function PosterArrangeModal({
         </div>
       )}
 
-      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <ModalActions>
         <Button type="button" variant="ghost" onClick={onClose} disabled={saving} className="w-full sm:w-auto">
           {t("cancel")}
         </Button>
         <Button type="button" onClick={() => void save()} disabled={saving} className="w-full sm:w-auto">
           {saving ? t("saving") : t("save")}
         </Button>
-      </div>
+      </ModalActions>
     </Modal>
   );
 }

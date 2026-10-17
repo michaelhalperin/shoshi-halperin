@@ -9,6 +9,7 @@ import {
   Input,
   ConfirmModal,
   Modal,
+  ModalActions,
   Spinner,
   Textarea,
 } from "../../components/ui";
@@ -172,7 +173,11 @@ export default function AdminCourses() {
       )}
 
       {editing && (
-        <Modal title={editing === "new" ? t("newCourse") : t("edit")} onClose={() => setEditing(null)}>
+        <Modal
+          title={editing === "new" ? t("newCourse") : t("edit")}
+          onClose={() => setEditing(null)}
+          size="lg"
+        >
           <form onSubmit={save} className="space-y-5">
             <div className="grid gap-5 sm:grid-cols-2">
               <Input
@@ -189,27 +194,33 @@ export default function AdminCourses() {
                 onChange={(e) => setForm({ ...form, titleHe: e.target.value })}
               />
             </div>
-            <Textarea
-              label={t("descriptionEn")}
-              required
-              value={form.descriptionEn}
-              onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
-            />
-            <Textarea
-              label={t("descriptionHe")}
-              required
-              dir="rtl"
-              value={form.descriptionHe}
-              onChange={(e) => setForm({ ...form, descriptionHe: e.target.value })}
-            />
-            <ImageUpload
-              label={t("image")}
-              folder="courses"
-              value={form.imageUrl}
-              onChange={(imageUrl) => setForm({ ...form, imageUrl })}
-              color={form.color}
-            />
-            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Textarea
+                  label={t("descriptionEn")}
+                  required
+                  rows={5}
+                  value={form.descriptionEn}
+                  onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
+                />
+                <Textarea
+                  label={t("descriptionHe")}
+                  required
+                  rows={5}
+                  dir="rtl"
+                  value={form.descriptionHe}
+                  onChange={(e) => setForm({ ...form, descriptionHe: e.target.value })}
+                />
+              </div>
+              <ImageUpload
+                label={t("image")}
+                folder="courses"
+                value={form.imageUrl}
+                onChange={(imageUrl) => setForm({ ...form, imageUrl })}
+                color={form.color}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
               <div className="space-y-2">
                 <Input
                   label={`${t("price")} (₪)`}
@@ -253,25 +264,25 @@ export default function AdminCourses() {
                 value={form.maxParticipants}
                 onChange={(e) => setForm({ ...form, maxParticipants: Number(e.target.value) })}
               />
+              <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium text-stone-600">
+                <input
+                  type="checkbox"
+                  checked={form.active}
+                  onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                  className="h-4 w-4 accent-clay-600"
+                />
+                {t("active")}
+              </label>
             </div>
-            <label className="flex items-center gap-2 text-sm font-medium text-stone-600">
-              <input
-                type="checkbox"
-                checked={form.active}
-                onChange={(e) => setForm({ ...form, active: e.target.checked })}
-                className="h-4 w-4 accent-clay-600"
-              />
-              {t("active")}
-            </label>
             {error && <ErrorNote message={error} />}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+            <ModalActions>
+              <Button type="button" variant="ghost" onClick={() => setEditing(null)} className="w-full sm:w-auto">
                 {t("cancel")}
               </Button>
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" disabled={busy} className="w-full sm:w-auto">
                 {t("save")}
               </Button>
-            </div>
+            </ModalActions>
           </form>
         </Modal>
       )}

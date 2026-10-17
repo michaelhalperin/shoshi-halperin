@@ -154,6 +154,142 @@ button:disabled {
   animation: mobile-nav-backdrop-out 180ms ease-in both;
 }
 
+@keyframes recipe-ai-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes recipe-ai-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes recipe-ai-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes recipe-ai-orbit-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes recipe-ai-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+}
+
+@keyframes recipe-ai-line {
+  0%,
+  100% {
+    transform: scaleX(0.55);
+    opacity: 0.35;
+  }
+  40% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  70% {
+    transform: scaleX(0.82);
+    opacity: 0.7;
+  }
+}
+
+@keyframes recipe-ai-spark {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes recipe-ai-status-swap {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.recipe-ai-overlay {
+  animation: recipe-ai-fade-in 280ms ease-out both;
+}
+
+.recipe-ai-card {
+  animation: recipe-ai-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.recipe-ai-orbit {
+  animation: recipe-ai-orbit 4.5s linear infinite;
+}
+
+.recipe-ai-orbit-reverse {
+  animation: recipe-ai-orbit-reverse 3.2s linear infinite;
+}
+
+.recipe-ai-pulse {
+  animation: recipe-ai-pulse 1.8s ease-in-out infinite;
+}
+
+.recipe-ai-line {
+  transform-origin: center;
+  animation: recipe-ai-line 1.8s ease-in-out infinite;
+}
+
+.recipe-ai-line:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.recipe-ai-line:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+.recipe-ai-line:nth-child(4) {
+  animation-delay: 0.54s;
+}
+
+.recipe-ai-spark {
+  animation: recipe-ai-spark 1.4s ease-in-out infinite;
+}
+
+.recipe-ai-spark:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+.recipe-ai-spark:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+.recipe-ai-status-swap {
+  animation: recipe-ai-status-swap 320ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop-in,
   .modal-backdrop-out,
@@ -162,7 +298,15 @@ button:disabled {
   .mobile-nav-in,
   .mobile-nav-out,
   .mobile-nav-backdrop-in,
-  .mobile-nav-backdrop-out {
+  .mobile-nav-backdrop-out,
+  .recipe-ai-overlay,
+  .recipe-ai-card,
+  .recipe-ai-orbit,
+  .recipe-ai-orbit-reverse,
+  .recipe-ai-pulse,
+  .recipe-ai-line,
+  .recipe-ai-spark,
+  .recipe-ai-status-swap {
     animation: none;
   }
 }
@@ -269,5 +413,28 @@ button:disabled {
   .image-skeleton {
     animation: none;
     background: #f0ece6;
+  }
+}
+
+/* Portrait snap-strip gallery (same language on phone and desktop) */
+.gallery-strip {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-clay-200) transparent;
+}
+
+.gallery-strip-card {
+  width: min(78vw, 280px);
+  aspect-ratio: 3 / 4;
+}
+
+@media (min-width: 768px) {
+  .gallery-strip-card {
+    width: min(34vw, 320px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .gallery-strip-card {
+    width: min(28vw, 340px);
   }
 }

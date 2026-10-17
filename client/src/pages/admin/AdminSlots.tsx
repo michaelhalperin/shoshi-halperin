@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError, type Course, type Slot } from "../../api";
 import { DateTimePicker, toLocalInputValue } from "../../components/DateTimePicker";
-import { Badge, Button, ConfirmModal, ErrorNote, Input, Modal, Select, Spinner } from "../../components/ui";
-import { formatDateTime, formatTime, useI18n } from "../../i18n";
+import { Badge, Button, ConfirmModal, ErrorNote, Input, Modal, ModalActions, Select, Spinner } from "../../components/ui";
+import { formatDateTime, formatSlotDateParts, formatTime, useI18n } from "../../i18n";
 
 export default function AdminSlots() {
   const { t, lang, pick } = useI18n();
@@ -118,37 +118,67 @@ export default function AdminSlots() {
         <Spinner />
       ) : (
         <div className="divide-y divide-stone-200 border-y border-stone-200 bg-white">
-          {slots.map((slot) => (
-            <div key={slot.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-              <div>
-                <div className="font-display text-lg font-semibold text-ink">
-                  {slot.course ? pick(slot.course, "title") : ""}
+          {slots.map((slot) => {
+            const date = formatSlotDateParts(slot.startsAt, lang);
+            return (
+              <div key={slot.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+                <div className="flex min-w-0 flex-1 items-center gap-4">
+                  <div
+                    className="flex w-14 shrink-0 flex-col items-center justify-center border border-stone-200 bg-clay-50 px-1.5 py-2 text-ink"
+                    aria-label={formatDateTime(slot.startsAt, lang)}
+                  >
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-clay-600">
+                      {date.weekday}
+                    </span>
+                    <span className="font-display text-2xl font-semibold leading-none tabular-nums">
+                      {date.day}
+                    </span>
+                    <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">
+                      {date.month}
+                      {date.showYear ? ` ${date.year}` : ""}
+                    </span>
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="font-display text-lg font-semibold text-ink">
+                      {slot.course ? pick(slot.course, "title") : ""}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-medium tabular-nums text-ink">
+                        <span className="text-stone-400" aria-hidden>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                        {formatTime(slot.startsAt, lang)}
+                        <span className="text-stone-300">–</span>
+                        {formatTime(slot.endsAt, lang)}
+                      </span>
+                      <Badge tone={slot.booked >= slot.capacity ? "red" : "amber"}>
+                        {t("bookedCount")}: {slot.booked}/{slot.capacity}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm font-light text-stone-500">
-                  <span>
-                    {formatDateTime(slot.startsAt, lang)} – {formatTime(slot.endsAt, lang)}
-                  </span>
-                  <Badge tone={slot.booked >= slot.capacity ? "red" : "amber"}>
-                    {t("bookedCount")}: {slot.booked}/{slot.capacity}
-                  </Badge>
+
+                <div className="flex gap-2">
+                  <Button variant="secondary" onClick={() => openEdit(slot)}>
+                    {t("edit")}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      setDeleteError("");
+                      setDeleting(slot);
+                    }}
+                  >
+                    {t("delete")}
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => openEdit(slot)}>
-                  {t("edit")}
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => {
-                    setDeleteError("");
-                    setDeleting(slot);
-                  }}
-                >
-                  {t("delete")}
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {slots.length === 0 && <p className="px-5 py-6 font-light text-stone-500">{t("noSlots")}</p>}
         </div>
       )}
@@ -200,14 +230,14 @@ export default function AdminSlots() {
               />
             </div>
             {error && <ErrorNote message={error} />}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+            <ModalActions>
+              <Button type="button" variant="ghost" onClick={() => setEditing(null)} className="w-full sm:w-auto">
                 {t("cancel")}
               </Button>
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" disabled={busy} className="w-full sm:w-auto">
                 {t("save")}
               </Button>
-            </div>
+            </ModalActions>
           </form>
         </Modal>
       )}

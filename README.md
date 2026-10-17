@@ -117,5 +117,6 @@ The build runs migrations (`db push`) and seeds sample data on each deploy. Set 
 | `RESEND_FROM` | Render | Verified sender address in Resend |
 | `OPENAI_API_KEY` | Render | OpenAI API key for AI recipe parsing in admin |
 | `OPENAI_MODEL` | Render | Optional OpenAI model override (default: `gpt-4o-mini`) |
+| `UNSPLASH_ACCESS_KEY` | Render | Unsplash Access Key for “Find on web” recipe photos |
 
 Local copies: `server/.env.example`, `client/.env.example`.

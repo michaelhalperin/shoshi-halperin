@@ -33,6 +33,16 @@ const dictionaries = {
     uploadImage: "Upload photo",
     replaceImage: "Replace photo",
     removeImage: "Remove photo",
+    findImageOnWeb: "Find on web",
+    findingImages: "Searching photos…",
+    importingImage: "Saving photo…",
+    imageSearchEmpty: "No photos found — try different words",
+    imageSearchNeedQuery: "Type what to search for",
+    imageSearchPlaceholder: "e.g. smoked salmon plate",
+    imageSearchNotConfigured: "Web photo search is not configured on the server",
+    searchImages: "Search",
+    chooseWebImage: "Choose a photo",
+    photoBy: "Photo by",
     confirmRemoveImage: "Remove this photo? You can upload a new one anytime.",
     confirmRemoveParagraph: "Remove this paragraph?",
     uploading: "Uploading…",
@@ -171,7 +181,11 @@ const dictionaries = {
       "Paste or type your ingredients and steps in any format. For example:\n\nIngredients:\n2 cups flour\n3 eggs\n\nSteps:\nMix dry ingredients\nBake at 180°C for 25 minutes",
     organizeWithAi: "Organize with AI",
     organizing: "Organizing…",
-    recipeParsed: "Organized — review below before saving",
+    organizingReading: "Reading your recipe…",
+    organizingWriting: "Writing title & description…",
+    organizingSorting: "Sorting ingredients & steps…",
+    recipeAiHint: "Fills title, description, ingredients, and steps from the text below",
+    recipeParsed: "Organized — review title, description, and steps before saving",
     recipeParseRequired: "Add ingredients and steps, then click Organize with AI",
     aiNotConfigured: "AI is not configured on the server",
     linkedCourseOptional: "Linked course (optional)",
@@ -294,6 +308,16 @@ const dictionaries = {
     uploadImage: "העלאת תמונה",
     replaceImage: "החלפת תמונה",
     removeImage: "הסרת תמונה",
+    findImageOnWeb: "חיפוש באינטרנט",
+    findingImages: "מחפש תמונות…",
+    importingImage: "שומר תמונה…",
+    imageSearchEmpty: "לא נמצאו תמונות — נסו מילים אחרות",
+    imageSearchNeedQuery: "כתבו מה לחפש",
+    imageSearchPlaceholder: "לדוגמה: סלמון מעושן בצלחת",
+    imageSearchNotConfigured: "חיפוש תמונות באינטרנט לא מוגדר בשרת",
+    searchImages: "חיפוש",
+    chooseWebImage: "בחרו תמונה",
+    photoBy: "צילום",
     confirmRemoveImage: "להסיר את התמונה? אפשר להעלות תמונה חדשה בכל עת.",
     confirmRemoveParagraph: "להסיר את הפסקה?",
     uploading: "מעלה…",
@@ -432,7 +456,11 @@ const dictionaries = {
       "הדביקו או כתבו מרכיבים והוראות הכנה בכל פורמט. לדוגמה:\n\nמרכיבים:\n2 כוסות קמח\n3 ביצים\n\nהוראות:\nלערבב את המרכיבים היבשים\nלאפות ב-180 מעלות ל-25 דקות",
     organizeWithAi: "סידור עם AI",
     organizing: "מסדר…",
-    recipeParsed: "סודר — בדקו למטה לפני השמירה",
+    organizingReading: "קורא את המתכון…",
+    organizingWriting: "כותב כותרת ותיאור…",
+    organizingSorting: "מסדר מרכיבים והוראות…",
+    recipeAiHint: "ממלא כותרת, תיאור, מרכיבים והוראות מהטקסט למטה",
+    recipeParsed: "סודר — בדקו כותרת, תיאור והוראות לפני השמירה",
     recipeParseRequired: "הוסיפו מרכיבים והוראות, ואז לחצו על סידור עם AI",
     aiNotConfigured: "בינה מלאכותית לא מוגדרת בשרת",
     linkedCourseOptional: "סדנה מקושרת (לא חובה)",
@@ -607,5 +635,18 @@ export function formatDateSlider(dateKey: string, lang: Lang) {
     weekday: d.toLocaleDateString(locale, { weekday: "short" }),
     day: d.toLocaleDateString(locale, { day: "numeric" }),
     month: d.toLocaleDateString(locale, { month: "short" }),
+  };
+}
+
+export function formatSlotDateParts(iso: string, lang: Lang) {
+  const d = new Date(iso);
+  const locale = lang === "he" ? "he-IL" : "en-GB";
+  const year = d.getFullYear();
+  return {
+    weekday: d.toLocaleDateString(locale, { weekday: "short" }),
+    day: d.toLocaleDateString(locale, { day: "numeric" }),
+    month: d.toLocaleDateString(locale, { month: "short" }),
+    year,
+    showYear: year !== new Date().getFullYear(),
   };
 }

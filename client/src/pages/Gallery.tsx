@@ -1,56 +1,94 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type GalleryImage } from "../api";
 import { FadeInImage, OrnamentalDivider, Spinner } from "../components/ui";
-import { VideoThumbnail } from "../components/VideoThumbnail";
 import { useI18n } from "../i18n";
 import { posterFrameStyle } from "../testimonialTiles";
 
-const tileLayouts = [
-  "col-span-2 row-span-2",
-  "col-span-2 row-span-1",
-  "col-span-1 row-span-1",
-  "col-span-1 row-span-1",
-  "col-span-2 row-span-1",
-  "col-span-2 row-span-1",
-] as const;
+function GalleryVideoTile({
+  item,
+  active,
+}: {
+  item: GalleryImage;
+  active: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-function GalleryTile({ item, alt }: { item: GalleryImage; alt: string }) {
-  if (item.type === "video") {
-    return (
-      <>
-        {item.posterUrl ? (
-          <span className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.04]">
-            <FadeInImage
-              src={item.posterUrl}
-              alt={alt}
-              style={posterFrameStyle(item.posterFocusX, item.posterFocusY, item.posterScale)}
-              className="absolute inset-0 h-full w-full"
-            />
-          </span>
-        ) : (
-          <VideoThumbnail
-            src={item.url}
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-          />
-        )}
-        <span
-          className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink/20"
-          aria-hidden
-        >
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-ink shadow-md">
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-              <path d="M7 5.5v9l7-4.5-7-4.5z" />
-            </svg>
-          </span>
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!active) {
+      video.pause();
+      return;
+    }
+
+    const play = () => {
+      void video.play().catch(() => {
+        /* Autoplay can be blocked; keep poster/first frame. */
+      });
+    };
+
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      play();
+    } else {
+      video.addEventListener("loadeddata", play, { once: true });
+      video.load();
+    }
+
+    return () => {
+      video.removeEventListener("loadeddata", play);
+      video.pause();
+    };
+  }, [active, item.url]);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={item.url}
+        poster={item.posterUrl ?? undefined}
+        muted
+        loop
+        playsInline
+        preload={active ? "auto" : "metadata"}
+        aria-hidden
+        className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          active ? "scale-100" : "group-hover:scale-[1.04] group-focus-visible:scale-[1.04]"
+        }`}
+      />
+      <span
+        className={`pointer-events-none absolute inset-0 flex items-center justify-center bg-ink/20 transition-opacity duration-300 ${
+          active ? "opacity-0" : "opacity-100"
+        }`}
+        aria-hidden
+      >
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-paper/95 text-ink shadow-[0_8px_28px_rgba(33,29,25,0.28)] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105 sm:h-14 sm:w-14">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+            <path d="M7 5.5v9l7-4.5-7-4.5z" />
+          </svg>
         </span>
-      </>
-    );
+      </span>
+    </>
+  );
+}
+
+function GalleryTile({
+  item,
+  alt,
+  active,
+}: {
+  item: GalleryImage;
+  alt: string;
+  active: boolean;
+}) {
+  if (item.type === "video") {
+    return <GalleryVideoTile item={item} active={active} />;
   }
 
   const framed = Boolean(item.posterUrl);
 
   return (
-    <span className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.04]">
+    <span className="absolute inset-0 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04] group-focus-visible:scale-[1.04]">
       <FadeInImage
         src={item.url}
         alt={alt}
@@ -61,17 +99,102 @@ function GalleryTile({ item, alt }: { item: GalleryImage; alt: string }) {
   );
 }
 
+function nearestCardIndex(strip: HTMLElement) {
+  const cards = Array.from(strip.querySelectorAll<HTMLElement>("[data-gallery-card]"));
+  if (cards.length === 0) return 0;
+
+  const stripRect = strip.getBoundingClientRect();
+  const mid = stripRect.left + stripRect.width / 2;
+  let nearest = 0;
+  let nearestDist = Infinity;
+
+  cards.forEach((card, index) => {
+    const rect = card.getBoundingClientRect();
+    const dist = Math.abs(rect.left + rect.width / 2 - mid);
+    if (dist < nearestDist) {
+      nearestDist = dist;
+      nearest = index;
+    }
+  });
+
+  return nearest;
+}
+
 export default function Gallery() {
   const { t } = useI18n();
   const [images, setImages] = useState<GalleryImage[] | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api
       .get<{ images: GalleryImage[] }>("/api/gallery")
       .then((data) => setImages(data.images))
       .catch(() => setImages([]));
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduceMotion(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  const updateStripState = useCallback(() => {
+    const el = stripRef.current;
+    if (!el) return;
+
+    setFocusedIndex(nearestCardIndex(el));
+
+    const cards = el.querySelectorAll<HTMLElement>("[data-gallery-card]");
+    if (cards.length === 0 || el.scrollWidth <= el.clientWidth + 2) {
+      setCanScrollPrev(false);
+      setCanScrollNext(false);
+      return;
+    }
+    const strip = el.getBoundingClientRect();
+    const first = cards[0].getBoundingClientRect();
+    const last = cards[cards.length - 1].getBoundingClientRect();
+    const rtl = getComputedStyle(el).direction === "rtl";
+    if (rtl) {
+      setCanScrollPrev(first.right < strip.right - 4);
+      setCanScrollNext(last.left < strip.left + 4);
+    } else {
+      setCanScrollPrev(first.left < strip.left - 4);
+      setCanScrollNext(last.right > strip.right + 4);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el || !images?.length) return;
+    updateStripState();
+    el.addEventListener("scroll", updateStripState, { passive: true });
+    window.addEventListener("resize", updateStripState);
+    return () => {
+      el.removeEventListener("scroll", updateStripState);
+      window.removeEventListener("resize", updateStripState);
+    };
+  }, [images, updateStripState]);
+
+  const scrollStrip = useCallback((direction: "prev" | "next") => {
+    const el = stripRef.current;
+    if (!el) return;
+    const cards = Array.from(el.querySelectorAll<HTMLElement>("[data-gallery-card]"));
+    if (cards.length === 0) return;
+
+    const nearest = nearestCardIndex(el);
+    const targetIndex =
+      direction === "next"
+        ? Math.min(cards.length - 1, nearest + 1)
+        : Math.max(0, nearest - 1);
+    cards[targetIndex]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, []);
 
   const close = useCallback(() => setSelectedIndex(null), []);
@@ -111,17 +234,18 @@ export default function Gallery() {
   const selected = selectedIndex !== null && images ? images[selectedIndex] : null;
   const selectedAlt =
     selected?.type === "video" ? t("galleryVideoAlt") : t("galleryImageAlt");
+  const showStripNav = canScrollPrev || canScrollNext;
 
   return (
-    <div>
-      <section className="mx-auto max-w-3xl pt-10 pb-10 text-center sm:pt-16 sm:pb-14">
-        <h1 className="mb-6 font-display text-5xl font-medium leading-[1.08] text-ink sm:text-6xl">
+    <div className="pb-4">
+      <section className="mx-auto max-w-3xl pt-10 pb-8 text-center sm:pt-14 sm:pb-10">
+        <h1 className="mb-5 font-display text-5xl font-medium leading-[1.08] text-ink sm:text-6xl">
           {t("galleryTitle")}
         </h1>
-        <p className="mx-auto whitespace-nowrap text-[clamp(0.7rem,3.4vw,1.125rem)] font-light leading-relaxed text-stone-500">
+        <p className="mx-auto max-w-xl text-[clamp(0.85rem,2.8vw,1.125rem)] font-light leading-relaxed text-stone-500">
           {t("galleryHero")}
         </p>
-        <OrnamentalDivider className="mt-10" />
+        <OrnamentalDivider className="mt-8" />
       </section>
 
       {!images ? (
@@ -129,30 +253,82 @@ export default function Gallery() {
       ) : images.length === 0 ? (
         <p className="pb-10 text-center font-light text-stone-500">{t("noGallery")}</p>
       ) : (
-        <section className="grid grid-flow-dense auto-rows-[120px] grid-cols-2 gap-2.5 pb-10 sm:auto-rows-[140px] sm:gap-3 md:grid-cols-4 md:auto-rows-[155px]">
-          {images.map((image, index) => (
-            <button
-              key={image.key}
-              type="button"
-              onClick={() => setSelectedIndex(index)}
-              className={`group relative min-h-0 overflow-hidden border border-stone-200 bg-[#f0ece6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-500 ${tileLayouts[index % tileLayouts.length]}`}
-            >
-              <GalleryTile
-                item={image}
-                alt={image.type === "video" ? t("galleryVideoAlt") : t("galleryImageAlt")}
-              />
-              <span
-                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/35 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                aria-hidden
-              />
-            </button>
-          ))}
+        <section className="relative pb-8" aria-label={t("galleryTitle")}>
+          {showStripNav && (
+            <>
+              <button
+                type="button"
+                onClick={() => scrollStrip("prev")}
+                disabled={!canScrollPrev}
+                className="absolute start-1 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-paper/95 text-ink shadow-sm transition-opacity hover:border-clay-300 hover:bg-clay-50 disabled:pointer-events-none disabled:opacity-0 md:flex lg:start-2"
+                aria-label={t("previousImage")}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="rtl:rotate-180" aria-hidden>
+                  <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollStrip("next")}
+                disabled={!canScrollNext}
+                className="absolute end-1 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-paper/95 text-ink shadow-sm transition-opacity hover:border-clay-300 hover:bg-clay-50 disabled:pointer-events-none disabled:opacity-0 md:flex lg:end-2"
+                aria-label={t("nextImage")}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="rtl:rotate-180" aria-hidden>
+                  <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </>
+          )}
+
+          <div
+            ref={stripRef}
+            className="gallery-strip -mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:gap-3 sm:px-6 md:mx-0 md:gap-3.5 md:px-14 lg:px-16"
+          >
+            {images.map((image, index) => {
+              const alt = image.type === "video" ? t("galleryVideoAlt") : t("galleryImageAlt");
+              const active =
+                !reduceMotion &&
+                selectedIndex === null &&
+                focusedIndex === index &&
+                image.type === "video";
+
+              return (
+                <button
+                  key={image.key}
+                  type="button"
+                  data-gallery-card
+                  onClick={() => setSelectedIndex(index)}
+                  aria-label={alt}
+                  className="gallery-strip-card group relative shrink-0 snap-center overflow-hidden rounded-sm border border-stone-200/90 bg-clay-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-500"
+                >
+                  <GalleryTile item={image} alt={alt} active={active} />
+
+                  <span
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/45 via-transparent to-transparent opacity-70 transition-opacity duration-300 group-hover:opacity-100"
+                    aria-hidden
+                  />
+
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 text-paper sm:p-4">
+                    <span className="font-display text-lg font-medium tracking-tight sm:text-xl">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    {image.type === "video" && (
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-paper/85">
+                        {t("galleryVideo")}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </section>
       )}
 
       {selected && selectedIndex !== null && images && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/90 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/92 p-4 backdrop-blur-[2px]"
           onClick={close}
           role="dialog"
           aria-modal="true"
@@ -161,13 +337,19 @@ export default function Gallery() {
           <button
             type="button"
             onClick={close}
-            className="absolute end-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            className="absolute end-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-paper/10 text-paper transition-colors hover:bg-paper/20"
             aria-label={t("closeLightbox")}
           >
             <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
               <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
             </svg>
           </button>
+
+          <p className="pointer-events-none absolute start-4 top-5 font-display text-sm tracking-wide text-paper/70 sm:start-6 sm:text-base">
+            {String(selectedIndex + 1).padStart(2, "0")}
+            <span className="mx-2 text-paper/35">/</span>
+            {String(images.length).padStart(2, "0")}
+          </p>
 
           {images.length > 1 && (
             <>
@@ -177,7 +359,7 @@ export default function Gallery() {
                   event.stopPropagation();
                   goPrev();
                 }}
-                className="absolute start-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:start-4 sm:h-12 sm:w-12"
+                className="absolute start-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-paper/10 text-paper transition-colors hover:bg-paper/20 sm:start-4 sm:h-12 sm:w-12"
                 aria-label={t("previousImage")}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
@@ -190,7 +372,7 @@ export default function Gallery() {
                   event.stopPropagation();
                   goNext();
                 }}
-                className="absolute end-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:end-4 sm:h-12 sm:w-12"
+                className="absolute end-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-paper/10 text-paper transition-colors hover:bg-paper/20 sm:end-4 sm:h-12 sm:w-12"
                 aria-label={t("nextImage")}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
@@ -200,26 +382,29 @@ export default function Gallery() {
             </>
           )}
 
-          {selected.type === "video" ? (
-            <video
-              ref={videoRef}
-              key={selected.key}
-              src={selected.url}
-              poster={selected.posterUrl ?? undefined}
-              controls
-              autoPlay
-              playsInline
-              className="max-h-[85vh] max-w-full"
-              onClick={(event) => event.stopPropagation()}
-            />
-          ) : (
-            <img
-              src={selected.url}
-              alt={selectedAlt}
-              className="max-h-[85vh] max-w-full object-contain"
-              onClick={(event) => event.stopPropagation()}
-            />
-          )}
+          <div
+            className="relative max-h-[85vh] max-w-full overflow-hidden rounded-sm shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {selected.type === "video" ? (
+              <video
+                ref={videoRef}
+                key={selected.key}
+                src={selected.url}
+                poster={selected.posterUrl ?? undefined}
+                controls
+                autoPlay
+                playsInline
+                className="max-h-[85vh] max-w-full"
+              />
+            ) : (
+              <img
+                src={selected.url}
+                alt={selectedAlt}
+                className="max-h-[85vh] max-w-full object-contain"
+              />
+            )}
+          </div>
         </div>
       )}
     </div>

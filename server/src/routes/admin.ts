@@ -8,19 +8,30 @@ import {
   setGalleryPoster,
 } from "../gallery.js";
 import { prisma } from "../prisma.js";
-import { deleteImage, isS3Configured, keyFromPublicUrl, listImages } from "../s3.js";
+import { deleteImage, isS3Configured, keyFromPublicUrl, listImages, UPLOAD_FOLDERS } from "../s3.js";
 import {
   isTestimonialVideoKey,
   removeFromTestimonialOrder,
   saveTestimonialOrderKeys,
   setTestimonialPoster,
 } from "../testimonials.js";
+import { importWebImage, isImageSearchConfigured, searchWebImages } from "../imageSearch.js";
 import { isRecipeAiConfigured, parseRecipeContent } from "../recipeAi.js";
 import { aboutContentSchema } from "./about.js";
 import { uploadsRouter } from "./uploads.js";
 
 const recipeParseSchema = z.object({
   content: z.string().min(1),
+});
+
+const imageSearchSchema = z.object({
+  query: z.string().min(1).max(200),
+});
+
+const imageImportSchema = z.object({
+  imageUrl: z.string().url(),
+  downloadLocation: z.string().url().optional(),
+  folder: z.enum(UPLOAD_FOLDERS),
 });
 
 const mediaOrderSchema = z.object({
@@ -56,6 +67,46 @@ adminRouter.post("/recipes/parse", async (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to parse recipe";
     console.error("Recipe AI parse error:", err);
+    res.status(422).json({ error: message });
+  }
+});
+
+adminRouter.post("/images/search", async (req, res) => {
+  const parsed = imageSearchSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid input" });
+  }
+
+  if (!isImageSearchConfigured()) {
+    return res.status(503).json({ error: "Image search is not configured" });
+  }
+
+  try {
+    const images = await searchWebImages(parsed.data.query);
+    res.json({ images });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Image search failed";
+    console.error("Image search error:", err);
+    res.status(422).json({ error: message });
+  }
+});
+
+adminRouter.post("/images/import", async (req, res) => {
+  const parsed = imageImportSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid input" });
+  }
+
+  if (!isImageSearchConfigured()) {
+    return res.status(503).json({ error: "Image search is not configured" });
+  }
+
+  try {
+    const result = await importWebImage(parsed.data);
+    res.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to import image";
+    console.error("Image import error:", err);
     res.status(422).json({ error: message });
   }
 });

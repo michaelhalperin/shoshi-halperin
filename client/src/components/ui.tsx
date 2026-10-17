@@ -85,24 +85,52 @@ export function Input({ label, className = "", ...props }: InputHTMLAttributes<H
   );
 }
 
+type WebImageResult = {
+  id: string;
+  thumbUrl: string;
+  fullUrl: string;
+  downloadLocation: string;
+  photographer: string;
+  photographerUrl: string;
+};
+
 export function ImageUpload({
   label,
   folder,
   value,
   onChange,
   color = "amber",
+  searchQuery,
 }: {
   label: string;
   folder: "courses" | "recipes" | "gallery" | "gallery-posters" | "testimonials" | "testimonial-posters" | "about";
   value: string;
   onChange: (url: string) => void;
   color?: string;
+  /** When set, enables “Find on web” using this query (usually the title). */
+  searchQuery?: string;
 }) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [customQuery, setCustomQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [importingId, setImportingId] = useState<string | null>(null);
+  const [results, setResults] = useState<WebImageResult[]>([]);
+  const [pickerError, setPickerError] = useState("");
   const [error, setError] = useState("");
   const [confirmRemove, setConfirmRemove] = useState(false);
+
+  const busy = uploading || searching || Boolean(importingId);
+  const titleQuery = searchQuery?.trim() ?? "";
+
+  const closePicker = () => {
+    if (importingId) return;
+    setPickerOpen(false);
+    setPickerError("");
+  };
 
   const upload = async (file: File) => {
     setError("");
@@ -118,6 +146,71 @@ export function ImageUpload({
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const runSearch = async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setPickerError(t("imageSearchNeedQuery"));
+      setResults([]);
+      return;
+    }
+
+    setPickerError("");
+    setResults([]);
+    setSearching(true);
+    try {
+      const data = await api.post<{ images: WebImageResult[] }>("/api/admin/images/search", {
+        query: trimmed,
+      });
+      setResults(data.images);
+      if (data.images.length === 0) {
+        setPickerError(t("imageSearchEmpty"));
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 503) {
+        setPickerError(t("imageSearchNotConfigured"));
+      } else {
+        setPickerError(err instanceof ApiError ? err.message : t("errorGeneric"));
+      }
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const openPicker = () => {
+    setError("");
+    setPickerError("");
+    setResults([]);
+    setCustomQuery(titleQuery);
+    setPickerOpen(true);
+    window.setTimeout(() => searchInputRef.current?.focus(), 50);
+    if (titleQuery) {
+      void runSearch(titleQuery);
+    }
+  };
+
+  const importWeb = async (image: WebImageResult) => {
+    setPickerError("");
+    setImportingId(image.id);
+    try {
+      const result = await api.post<{ url: string }>("/api/admin/images/import", {
+        imageUrl: image.fullUrl,
+        downloadLocation: image.downloadLocation,
+        folder,
+      });
+      onChange(result.url);
+      setPickerOpen(false);
+      setResults([]);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 503) {
+        setPickerError(t("imageSearchNotConfigured"));
+      } else {
+        setPickerError(err instanceof ApiError ? err.message : t("errorGeneric"));
+      }
+    } finally {
+      setImportingId(null);
     }
   };
 
@@ -144,21 +237,32 @@ export function ImageUpload({
               if (file) void upload(file);
             }}
           />
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <Button
               type="button"
               variant="secondary"
-              disabled={uploading}
+              disabled={busy}
               className="w-full sm:w-auto sm:shrink-0"
               onClick={() => inputRef.current?.click()}
             >
               {uploading ? t("uploading") : value ? t("replaceImage") : t("uploadImage")}
             </Button>
+            {searchQuery !== undefined && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                className="w-full sm:w-auto sm:shrink-0"
+                onClick={openPicker}
+              >
+                {searching ? t("findingImages") : t("findImageOnWeb")}
+              </Button>
+            )}
             {value && (
               <Button
                 type="button"
                 variant="ghost"
-                disabled={uploading}
+                disabled={busy}
                 className="w-full sm:w-auto sm:shrink-0"
                 onClick={() => setConfirmRemove(true)}
               >
@@ -172,6 +276,115 @@ export function ImageUpload({
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
       </div>
+
+      {pickerOpen && (
+        <Modal
+          title={t("chooseWebImage")}
+          onClose={closePicker}
+          disableClose={Boolean(importingId)}
+          stacked
+          size="lg"
+        >
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <label className="min-w-0 flex-1">
+              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t("searchImages")}
+              </span>
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={customQuery}
+                onChange={(event) => setCustomQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  // Portals still bubble through the React tree — stop Enter from
+                  // submitting the parent recipe form and closing this modal.
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (!searching && !importingId && customQuery.trim()) {
+                      void runSearch(customQuery);
+                    }
+                  }
+                }}
+                placeholder={t("imageSearchPlaceholder")}
+                disabled={Boolean(importingId)}
+                className="w-full border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors placeholder:text-stone-400 focus:border-ink disabled:opacity-60"
+              />
+            </label>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={searching || Boolean(importingId) || !customQuery.trim()}
+              className="w-full shrink-0 sm:w-auto"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void runSearch(customQuery);
+              }}
+            >
+              {searching ? t("findingImages") : t("searchImages")}
+            </Button>
+          </div>
+
+          {searching && (
+            <div className="flex flex-col items-center justify-center gap-4 py-16">
+              <span className="h-10 w-10 animate-spin rounded-full border-2 border-clay-200 border-t-clay-600" />
+              <p className="text-sm font-medium text-clay-700">{t("findingImages")}</p>
+            </div>
+          )}
+
+          {!searching && pickerError && (
+            <div className="py-6">
+              <ErrorNote message={pickerError} />
+            </div>
+          )}
+
+          {!searching && !pickerError && results.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {results.map((image) => {
+                const importing = importingId === image.id;
+                return (
+                  <button
+                    key={image.id}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void importWeb(image)}
+                    className="group relative overflow-hidden rounded-xl border border-stone-200 bg-stone-100 text-start transition-all hover:border-clay-500 hover:shadow-[0_12px_32px_rgba(33,29,25,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <img
+                      src={image.fullUrl}
+                      alt=""
+                      className="aspect-[3/2] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                    <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-ink/75 via-ink/35 to-transparent px-4 pb-3 pt-14">
+                      <span className="text-sm font-medium text-paper">
+                        {importing ? t("importingImage") : `${t("photoBy")} ${image.photographer}`}
+                      </span>
+                      {!importing && (
+                        <span className="shrink-0 rounded-full bg-paper/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+                          {t("chooseWebImage")}
+                        </span>
+                      )}
+                    </span>
+                    {importing && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-paper/55 backdrop-blur-[1px]">
+                        <span className="h-9 w-9 animate-spin rounded-full border-2 border-clay-200 border-t-clay-600" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {!searching && !pickerError && results.length === 0 && !customQuery.trim() && (
+            <p className="py-10 text-center text-sm font-light text-stone-500">
+              {t("imageSearchNeedQuery")}
+            </p>
+          )}
+        </Modal>
+      )}
 
       {confirmRemove && (
         <ConfirmModal
@@ -395,6 +608,28 @@ export function ErrorNote({ message }: { message: string }) {
   );
 }
 
+const modalSizeClass = {
+  sm: "sm:max-w-lg",
+  md: "sm:max-w-3xl",
+  lg: "sm:max-w-5xl",
+} as const;
+
+export function ModalActions({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`sticky bottom-0 z-10 -mx-4 mt-6 flex flex-col-reverse gap-2 border-t border-stone-200/80 bg-paper/95 px-4 pt-4 pb-[max(0.25rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:-mx-8 sm:flex-row sm:justify-end sm:px-8 sm:pb-1 ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function ConfirmModal({
   title,
   message,
@@ -414,21 +649,21 @@ export function ConfirmModal({
 }) {
   const { t } = useI18n();
   return (
-    <Modal title={title} onClose={onClose} disableClose={busy} stacked>
+    <Modal title={title} onClose={onClose} disableClose={busy} stacked size="sm">
       <p className="font-light leading-relaxed text-stone-600">{message}</p>
       {error && (
         <div className="mt-4">
           <ErrorNote message={error} />
         </div>
       )}
-      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <ModalActions>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy} className="w-full sm:w-auto">
           {t("cancel")}
         </Button>
         <Button type="button" variant="danger" onClick={onConfirm} disabled={busy} className="w-full sm:w-auto">
           {confirmLabel ?? t("delete")}
         </Button>
-      </div>
+      </ModalActions>
     </Modal>
   );
 }
@@ -439,12 +674,16 @@ export function Modal({
   children,
   disableClose = false,
   stacked = false,
+  size = "md",
+  overlay,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   disableClose?: boolean;
   stacked?: boolean;
+  size?: keyof typeof modalSizeClass;
+  overlay?: ReactNode;
 }) {
   const [closing, setClosing] = useState(false);
   const closingRef = useRef(false);
@@ -482,7 +721,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className={`fixed inset-0 flex items-end justify-center bg-ink/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-4 ${
+      className={`fixed inset-0 flex items-end justify-center bg-ink/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-6 ${
         stacked ? "z-[60]" : "z-50"
       } ${closing ? "modal-backdrop-out" : "modal-backdrop-in"}`}
       onClick={requestClose}
@@ -491,19 +730,20 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={`max-h-[min(92dvh,100%)] w-full overflow-y-auto overscroll-contain rounded-t-2xl bg-paper px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(33,29,25,0.12)] sm:max-w-lg sm:rounded-none sm:px-8 sm:pt-8 sm:pb-8 sm:shadow-none ${
-          closing ? "modal-panel-out" : "modal-panel-in"
-        }`}
+        className={`flex max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl bg-paper shadow-[0_-12px_40px_rgba(33,29,25,0.12)] sm:max-h-[min(90dvh,960px)] sm:rounded-2xl sm:shadow-[0_28px_80px_rgba(33,29,25,0.18)] sm:ring-1 sm:ring-ink/8 ${
+          modalSizeClass[size]
+        } ${closing ? "modal-panel-out" : "modal-panel-in"}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-5 flex items-start justify-between gap-3 sm:mb-6">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-stone-200/70 px-4 pt-5 pb-4 sm:px-8 sm:pt-7 sm:pb-5">
           <h2 id="modal-title" className="font-display text-xl font-semibold leading-snug text-ink sm:text-2xl">
             {title}
           </h2>
           <button
             type="button"
             onClick={requestClose}
-            className="-me-1 shrink-0 p-2 text-stone-400 transition-colors hover:text-ink"
+            disabled={disableClose}
+            className="-me-1 -mt-1 shrink-0 rounded-full p-2 text-stone-400 transition-colors hover:bg-ink/5 hover:text-ink disabled:pointer-events-none disabled:opacity-30"
             aria-label="Close"
           >
             <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -511,7 +751,14 @@ export function Modal({
             </svg>
           </button>
         </div>
-        {children}
+        <div
+          className={`relative min-h-0 flex-1 overscroll-contain px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-8 sm:pt-6 sm:pb-6 ${
+            overlay ? "overflow-hidden" : "overflow-y-auto"
+          }`}
+        >
+          {children}
+          {overlay}
+        </div>
       </div>
     </div>,
     document.body

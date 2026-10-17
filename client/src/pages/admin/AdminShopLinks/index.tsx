@@ -7,6 +7,7 @@ import {
   ErrorNote,
   Input,
   Modal,
+  ModalActions,
   Spinner,
 } from "../../../components/ui";
 import { useI18n } from "../../../i18n";
@@ -270,60 +271,65 @@ export default function AdminShopLinks() {
         <Modal
           title={editing === "new" ? t("newShopLink") : t("edit")}
           onClose={() => setEditing(null)}
+          size="lg"
         >
           <form onSubmit={save} className="space-y-5">
-            <Input
-              label={t("titleEn")}
-              required
-              value={form.titleEn}
-              onChange={(e) => setForm({ ...form, titleEn: e.target.value })}
-            />
-            <Input
-              label={t("titleHe")}
-              required
-              value={form.titleHe}
-              onChange={(e) => setForm({ ...form, titleHe: e.target.value })}
-            />
-            <Input
-              label={t("shopCategoryEn")}
-              required
-              value={form.categoryEn}
-              onChange={(e) => setForm({ ...form, categoryEn: e.target.value })}
-            />
-            <Input
-              label={t("shopCategoryHe")}
-              required
-              value={form.categoryHe}
-              onChange={(e) => setForm({ ...form, categoryHe: e.target.value })}
-            />
-            <Input
-              label={t("shopName")}
-              required
-              value={form.shopName}
-              onChange={(e) => setForm({ ...form, shopName: e.target.value })}
-            />
-            <Input
-              label={t("productUrl")}
-              required
-              type="url"
-              value={form.productUrl}
-              onChange={(e) => setForm({ ...form, productUrl: e.target.value })}
-            />
-            <Input
-              label={t("imageUrl")}
-              type="url"
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-            />
-            <Input
-              label={t("price")}
-              type="number"
-              min={0}
-              step={0.01}
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-            />
-            <div className="grid gap-5 sm:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Input
+                label={t("titleEn")}
+                required
+                value={form.titleEn}
+                onChange={(e) => setForm({ ...form, titleEn: e.target.value })}
+              />
+              <Input
+                label={t("titleHe")}
+                required
+                value={form.titleHe}
+                onChange={(e) => setForm({ ...form, titleHe: e.target.value })}
+              />
+              <Input
+                label={t("shopCategoryEn")}
+                required
+                value={form.categoryEn}
+                onChange={(e) => setForm({ ...form, categoryEn: e.target.value })}
+              />
+              <Input
+                label={t("shopCategoryHe")}
+                required
+                value={form.categoryHe}
+                onChange={(e) => setForm({ ...form, categoryHe: e.target.value })}
+              />
+              <Input
+                label={t("shopName")}
+                required
+                value={form.shopName}
+                onChange={(e) => setForm({ ...form, shopName: e.target.value })}
+              />
+              <Input
+                label={t("price")}
+                type="number"
+                min={0}
+                step={0.01}
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Input
+                label={t("productUrl")}
+                required
+                type="url"
+                value={form.productUrl}
+                onChange={(e) => setForm({ ...form, productUrl: e.target.value })}
+              />
+              <Input
+                label={t("imageUrl")}
+                type="url"
+                value={form.imageUrl}
+                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-5 sm:grid-cols-4">
               <Input
                 label={t("utmSource")}
                 required
@@ -341,13 +347,13 @@ export default function AdminShopLinks() {
                 value={form.utmCampaign}
                 onChange={(e) => setForm({ ...form, utmCampaign: e.target.value })}
               />
+              <Input
+                label={t("shopLinkSort")}
+                type="number"
+                value={form.sortOrder}
+                onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
+              />
             </div>
-            <Input
-              label={t("shopLinkSort")}
-              type="number"
-              value={form.sortOrder}
-              onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-            />
             {previewUrl && (
               <div>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">
@@ -368,14 +374,14 @@ export default function AdminShopLinks() {
               {t("active")}
             </label>
             {error && <ErrorNote message={error} />}
-            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <ModalActions>
               <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => setEditing(null)}>
                 {t("cancel")}
               </Button>
               <Button type="submit" className="w-full sm:w-auto" disabled={busy}>
                 {t("save")}
               </Button>
-            </div>
+            </ModalActions>
           </form>
         </Modal>
       )}

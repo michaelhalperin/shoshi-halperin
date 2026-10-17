@@ -9,6 +9,7 @@ import {
   Input,
   ConfirmModal,
   Modal,
+  ModalActions,
   Select,
   Spinner,
   Textarea,
@@ -116,6 +117,58 @@ function RecipeParsePreview({ form }: { form: RecipeForm }) {
   );
 }
 
+function RecipeAiOrganizingOverlay() {
+  const { t } = useI18n();
+  const statuses = [t("organizingReading"), t("organizingWriting"), t("organizingSorting")];
+  const [statusIndex, setStatusIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setStatusIndex((current) => (current + 1) % statuses.length);
+    }, 1700);
+    return () => window.clearInterval(timer);
+  }, [statuses.length]);
+
+  return (
+    <div
+      className="recipe-ai-overlay absolute inset-0 z-20 flex items-center justify-center bg-paper/82 px-6 backdrop-blur-[3px]"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div className="recipe-ai-card relative flex w-full max-w-sm flex-col items-center gap-6 rounded-2xl border border-clay-200/80 bg-paper px-8 py-9 shadow-[0_18px_50px_rgba(33,29,25,0.12)]">
+        <div className="relative flex h-24 w-24 items-center justify-center" aria-hidden>
+          <span className="recipe-ai-pulse absolute inset-3 rounded-full bg-clay-100" />
+          <span className="recipe-ai-orbit absolute inset-0 rounded-full border border-dashed border-clay-300/80" />
+          <span className="recipe-ai-orbit-reverse absolute inset-2 rounded-full border border-clay-200/60 border-t-clay-500/70" />
+          <span className="relative flex h-12 w-12 items-center justify-center rounded-full bg-clay-50 text-clay-700 shadow-[inset_0_0_0_1px_rgba(154,93,60,0.12)]">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M4 7h16M7 12h10M9 17h6" strokeLinecap="round" />
+              <circle cx="18.5" cy="5.5" r="1.2" fill="currentColor" stroke="none" className="recipe-ai-spark" />
+              <circle cx="5.5" cy="12" r="1" fill="currentColor" stroke="none" className="recipe-ai-spark" />
+              <circle cx="16.5" cy="18" r="1.1" fill="currentColor" stroke="none" className="recipe-ai-spark" />
+            </svg>
+          </span>
+        </div>
+
+        <div className="flex w-full max-w-[12rem] flex-col gap-2.5" aria-hidden>
+          <span className="recipe-ai-line h-1.5 w-full rounded-full bg-clay-300/90" />
+          <span className="recipe-ai-line mx-auto h-1.5 w-[88%] rounded-full bg-clay-200" />
+          <span className="recipe-ai-line mx-auto h-1.5 w-[72%] rounded-full bg-clay-200/90" />
+          <span className="recipe-ai-line mx-auto h-1.5 w-[58%] rounded-full bg-clay-100" />
+        </div>
+
+        <p
+          key={statuses[statusIndex]}
+          className="recipe-ai-status-swap min-h-6 text-center text-sm font-medium tracking-wide text-clay-700"
+        >
+          {statuses[statusIndex]}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminRecipes() {
   const { t, pick } = useI18n();
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
@@ -173,9 +226,19 @@ export default function AdminRecipes() {
     setEditing(recipe);
   };
 
-  const parseContent = async (): Promise<
-    Pick<RecipeForm, "ingredientsEn" | "ingredientsHe" | "stepsEn" | "stepsHe"> | null
-  > => {
+  type ParsedRecipeFields = Pick<
+    RecipeForm,
+    | "titleEn"
+    | "titleHe"
+    | "descriptionEn"
+    | "descriptionHe"
+    | "ingredientsEn"
+    | "ingredientsHe"
+    | "stepsEn"
+    | "stepsHe"
+  >;
+
+  const parseContent = async (): Promise<ParsedRecipeFields | null> => {
     const content = rawContent.trim();
     if (!content) {
       setParseError(t("recipeParseRequired"));
@@ -185,9 +248,9 @@ export default function AdminRecipes() {
     setParseError("");
     setParseBusy(true);
     try {
-      const result = await api.post<{
-        recipe: Pick<RecipeForm, "ingredientsEn" | "ingredientsHe" | "stepsEn" | "stepsHe">;
-      }>("/api/admin/recipes/parse", { content });
+      const result = await api.post<{ recipe: ParsedRecipeFields }>("/api/admin/recipes/parse", {
+        content,
+      });
       setForm((current) => ({ ...current, ...result.recipe }));
       setParsedFromRaw(content);
       return result.recipe;
@@ -233,13 +296,25 @@ export default function AdminRecipes() {
       courseId: workingForm.courseId || null,
     };
     try {
+      const linked = payload.courseId
+        ? courses.find((course) => course.id === payload.courseId)
+        : undefined;
+      const linkedCourse = linked
+        ? { id: linked.id, titleEn: linked.titleEn, titleHe: linked.titleHe }
+        : null;
+
       if (editing === "new") {
-        await api.post("/api/recipes", payload);
+        const { recipe } = await api.post<{ recipe: Recipe }>("/api/recipes", payload);
+        setRecipes((list) => [...(list ?? []), { ...recipe, course: linkedCourse }]);
       } else if (editing) {
-        await api.put(`/api/recipes/${editing.id}`, payload);
+        const { recipe } = await api.put<{ recipe: Recipe }>(`/api/recipes/${editing.id}`, payload);
+        setRecipes((list) =>
+          (list ?? []).map((item) =>
+            item.id === recipe.id ? { ...recipe, course: linkedCourse } : item
+          )
+        );
       }
       setEditing(null);
-      load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("errorGeneric"));
     } finally {
@@ -252,9 +327,10 @@ export default function AdminRecipes() {
     setDeleteBusy(true);
     setDeleteError("");
     try {
-      await api.delete(`/api/recipes/${deleting.id}`);
+      const removedId = deleting.id;
+      await api.delete(`/api/recipes/${removedId}`);
+      setRecipes((list) => (list ?? []).filter((recipe) => recipe.id !== removedId));
       setDeleting(null);
-      load();
     } catch (err) {
       setDeleteError(err instanceof ApiError ? err.message : t("errorGeneric"));
     } finally {
@@ -329,8 +405,14 @@ export default function AdminRecipes() {
       )}
 
       {editing && (
-        <Modal title={editing === "new" ? t("newRecipe") : t("edit")} onClose={() => setEditing(null)}>
-          <form onSubmit={save} className="space-y-5">
+        <Modal
+          title={editing === "new" ? t("newRecipe") : t("edit")}
+          onClose={() => setEditing(null)}
+          size="lg"
+          disableClose={parseBusy}
+          overlay={parseBusy ? <RecipeAiOrganizingOverlay /> : null}
+        >
+          <form onSubmit={save} className={`space-y-5 ${parseBusy ? "pointer-events-none select-none" : ""}`}>
             <div className="grid gap-5 sm:grid-cols-2">
               <Input
                 label={t("titleEn")}
@@ -346,91 +428,102 @@ export default function AdminRecipes() {
                 onChange={(e) => setForm({ ...form, titleHe: e.target.value })}
               />
             </div>
-            <Textarea
-              label={t("descriptionEn")}
-              required
-              value={form.descriptionEn}
-              onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
-            />
-            <Textarea
-              label={t("descriptionHe")}
-              required
-              dir="rtl"
-              value={form.descriptionHe}
-              onChange={(e) => setForm({ ...form, descriptionHe: e.target.value })}
-            />
-            <div>
+            <div className="grid gap-5 sm:grid-cols-2">
               <Textarea
-                label={t("recipeContent")}
+                label={t("descriptionEn")}
                 required
-                rows={5}
-                value={rawContent}
-                placeholder={t("recipeContentPlaceholder")}
-                onChange={(e) => {
-                  setRawContent(e.target.value);
-                  setParseError("");
-                }}
+                rows={3}
+                value={form.descriptionEn}
+                onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
               />
-              <div className="mt-3 flex justify-end">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={parseBusy || !rawContent.trim()}
-                  onClick={() => void parseContent()}
-                >
-                  {parseBusy ? t("organizing") : t("organizeWithAi")}
-                </Button>
-              </div>
-              {parseError && (
-                <div className="mt-3">
-                  <ErrorNote message={parseError} />
+              <Textarea
+                label={t("descriptionHe")}
+                required
+                rows={3}
+                dir="rtl"
+                value={form.descriptionHe}
+                onChange={(e) => setForm({ ...form, descriptionHe: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start">
+              <div>
+                <Textarea
+                  label={t("recipeContent")}
+                  required
+                  rows={7}
+                  value={rawContent}
+                  placeholder={t("recipeContentPlaceholder")}
+                  onChange={(e) => {
+                    setRawContent(e.target.value);
+                    setParseError("");
+                  }}
+                />
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs font-light text-stone-500">{t("recipeAiHint")}</p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={parseBusy || !rawContent.trim()}
+                    onClick={() => void parseContent()}
+                    className="w-full shrink-0 sm:w-auto"
+                  >
+                    {parseBusy ? t("organizing") : t("organizeWithAi")}
+                  </Button>
                 </div>
-              )}
+                {parseError && (
+                  <div className="mt-3">
+                    <ErrorNote message={parseError} />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-5">
+                <ImageUpload
+                  label={t("image")}
+                  folder="recipes"
+                  value={form.imageUrl}
+                  onChange={(imageUrl) => setForm({ ...form, imageUrl })}
+                  color={form.color}
+                  searchQuery={form.titleEn.trim() || form.titleHe.trim()}
+                />
+                <div className="flex items-end gap-4">
+                  <div className="min-w-0 flex-1">
+                    <Select
+                      label={t("linkedCourseOptional")}
+                      value={form.courseId}
+                      onChange={(e) => setForm({ ...form, courseId: e.target.value })}
+                    >
+                      <option value="">{t("noLinkedCourse")}</option>
+                      {courses.map((course) => (
+                        <option key={course.id} value={course.id}>
+                          {pick(course, "title")}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <label className="flex shrink-0 items-center gap-2 pb-2 text-sm font-medium text-stone-600">
+                    <input
+                      type="checkbox"
+                      checked={form.active}
+                      onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                      className="h-4 w-4 accent-clay-600"
+                    />
+                    {t("active")}
+                  </label>
+                </div>
+              </div>
             </div>
             {hasParsedContent(form) && rawContent.trim() === parsedFromRaw && (
               <RecipeParsePreview form={form} />
             )}
-            <ImageUpload
-              label={t("image")}
-              folder="recipes"
-              value={form.imageUrl}
-              onChange={(imageUrl) => setForm({ ...form, imageUrl })}
-              color={form.color}
-            />
-            <div className="flex items-end gap-4">
-              <div className="min-w-0 flex-1">
-                <Select
-                  label={t("linkedCourseOptional")}
-                  value={form.courseId}
-                  onChange={(e) => setForm({ ...form, courseId: e.target.value })}
-                >
-                  <option value="">{t("noLinkedCourse")}</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {pick(course, "title")}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <label className="flex shrink-0 items-center gap-2 pb-2 text-sm font-medium text-stone-600">
-                <input
-                  type="checkbox"
-                  checked={form.active}
-                  onChange={(e) => setForm({ ...form, active: e.target.checked })}
-                  className="h-4 w-4 accent-clay-600"
-                />
-                {t("active")}
-              </label>
-            </div>
             {error && <ErrorNote message={error} />}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+            <ModalActions>
+              <Button type="button" variant="ghost" onClick={() => setEditing(null)} className="w-full sm:w-auto">
                 {t("cancel")}
               </Button>
-              <Button type="submit" disabled={busy || parseBusy}>
+              <Button type="submit" disabled={busy || parseBusy} className="w-full sm:w-auto">
                 {t("save")}
               </Button>
-            </div>
+            </ModalActions>
           </form>
         </Modal>
       )}

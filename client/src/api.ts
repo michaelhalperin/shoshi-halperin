@@ -58,6 +58,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
       credentials: "include",
       signal: controller.signal,
+      // Bypass HTTP cache for admin/auth lists so save/delete updates show immediately.
+      cache: method === "GET" && !isCacheableGet(path) ? "no-store" : undefined,
       headers: options.body ? { "Content-Type": "application/json" } : undefined,
       ...options,
     });

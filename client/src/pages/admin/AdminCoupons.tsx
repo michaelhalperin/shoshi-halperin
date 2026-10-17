@@ -8,6 +8,7 @@ import {
   ErrorNote,
   Input,
   Modal,
+  ModalActions,
   Select,
   Spinner,
 } from "../../components/ui";
@@ -214,71 +215,75 @@ export default function AdminCoupons() {
           onClose={() => setEditing(null)}
         >
           <form onSubmit={save} className="space-y-5">
-            <Input
-              label={t("couponCodeLabel")}
-              required
-              value={form.code}
-              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-              className="font-mono uppercase"
-            />
-            <Select
-              label={t("discountType")}
-              value={form.discountType}
-              onChange={(e) =>
-                setForm({ ...form, discountType: e.target.value as "percent" | "fixed" })
-              }
-            >
-              <option value="percent">{t("discountPercent")}</option>
-              <option value="fixed">{t("discountFixed")}</option>
-            </Select>
-            <Input
-              label={t("discountValue")}
-              type="number"
-              min={1}
-              max={form.discountType === "percent" ? 100 : undefined}
-              step={form.discountType === "percent" ? 1 : 1}
-              required
-              value={form.discountValue}
-              onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
-            />
-            <Input
-              label={t("maxUses")}
-              type="number"
-              min={1}
-              placeholder={t("maxUsesUnlimited")}
-              value={form.maxUses}
-              onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
-            />
-            <div>
-              <DateTimePicker
-                label={t("expiresAtOptional")}
-                value={form.expiresAt}
-                onChange={(expiresAt) => setForm({ ...form, expiresAt })}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Input
+                label={t("couponCodeLabel")}
+                required
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                className="font-mono uppercase"
               />
-              {form.expiresAt && (
-                <div className="mt-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setForm({ ...form, expiresAt: "" })}
-                  >
-                    {t("clearExpiry")}
-                  </Button>
-                </div>
-              )}
+              <Select
+                label={t("discountType")}
+                value={form.discountType}
+                onChange={(e) =>
+                  setForm({ ...form, discountType: e.target.value as "percent" | "fixed" })
+                }
+              >
+                <option value="percent">{t("discountPercent")}</option>
+                <option value="fixed">{t("discountFixed")}</option>
+              </Select>
+              <Input
+                label={t("discountValue")}
+                type="number"
+                min={1}
+                max={form.discountType === "percent" ? 100 : undefined}
+                step={form.discountType === "percent" ? 1 : 1}
+                required
+                value={form.discountValue}
+                onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
+              />
+              <Input
+                label={t("maxUses")}
+                type="number"
+                min={1}
+                placeholder={t("maxUsesUnlimited")}
+                value={form.maxUses}
+                onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
+              />
             </div>
-            <Select
-              label={t("courseSpecificCoupon")}
-              value={form.courseId}
-              onChange={(e) => setForm({ ...form, courseId: e.target.value })}
-            >
-              <option value="">{t("allCoursesCoupon")}</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {pick(course, "title")}
-                </option>
-              ))}
-            </Select>
+            <div className="grid gap-5 sm:grid-cols-2 sm:items-end">
+              <div>
+                <DateTimePicker
+                  label={t("expiresAtOptional")}
+                  value={form.expiresAt}
+                  onChange={(expiresAt) => setForm({ ...form, expiresAt })}
+                />
+                {form.expiresAt && (
+                  <div className="mt-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setForm({ ...form, expiresAt: "" })}
+                    >
+                      {t("clearExpiry")}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <Select
+                label={t("courseSpecificCoupon")}
+                value={form.courseId}
+                onChange={(e) => setForm({ ...form, courseId: e.target.value })}
+              >
+                <option value="">{t("allCoursesCoupon")}</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {pick(course, "title")}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <label className="flex items-center gap-2 text-sm font-medium text-stone-600">
               <input
                 type="checkbox"
@@ -289,14 +294,14 @@ export default function AdminCoupons() {
               {t("active")}
             </label>
             {error && <ErrorNote message={error} />}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+            <ModalActions>
+              <Button type="button" variant="ghost" onClick={() => setEditing(null)} className="w-full sm:w-auto">
                 {t("cancel")}
               </Button>
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" disabled={busy} className="w-full sm:w-auto">
                 {t("save")}
               </Button>
-            </div>
+            </ModalActions>
           </form>
         </Modal>
       )}

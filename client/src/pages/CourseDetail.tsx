@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { useParams } from "react-router-dom";
 import { api, ApiError, type CouponValidation, type Course, type Slot } from "../api";
 import SlotCalendar, { toDateKey } from "../components/SlotCalendar";
-import { Button, CourseImage, ErrorNote, Input, Modal, OrnamentalDivider, Spinner } from "../components/ui";
+import { Button, CourseImage, ErrorNote, Input, Modal, ModalActions, OrnamentalDivider, Spinner } from "../components/ui";
 import { formatDateTime, formatTime, useI18n } from "../i18n";
 import { siteConfig } from "../site";
 import { descriptionParagraphs } from "../text";
@@ -310,23 +310,25 @@ export default function CourseDetail() {
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               autoComplete="name"
             />
-            <Input
-              label={t("phone")}
-              type="tel"
-              required
-              minLength={5}
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              autoComplete="tel"
-            />
-            <Input
-              label={t("email")}
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              autoComplete="email"
-            />
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Input
+                label={t("phone")}
+                type="tel"
+                required
+                minLength={5}
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                autoComplete="tel"
+              />
+              <Input
+                label={t("email")}
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                autoComplete="email"
+              />
+            </div>
             {!course.customPrice && (
               <div>
                 <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
@@ -360,14 +362,14 @@ export default function CourseDetail() {
               </div>
             )}
             {formError && <ErrorNote message={formError} />}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setBookingSlot(null)}>
+            <ModalActions>
+              <Button type="button" variant="ghost" onClick={() => setBookingSlot(null)} className="w-full sm:w-auto">
                 {t("cancel")}
               </Button>
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" disabled={busy} className="w-full sm:w-auto">
                 {t("bookNow")}
               </Button>
-            </div>
+            </ModalActions>
           </form>
         </Modal>
       )}

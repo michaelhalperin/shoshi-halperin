@@ -147,6 +147,24 @@ export async function uploadFile(folder: UploadFolder, file: Express.Multer.File
   return { key, url: publicUrlForKey(key), type };
 }
 
+/** Upload a raw image buffer (e.g. imported from a web image search). */
+export async function uploadImageBuffer(folder: UploadFolder, buffer: Buffer, mimetype: string) {
+  const file = {
+    fieldname: "file",
+    originalname: `import.${extensionForMime(mimetype)}`,
+    encoding: "7bit",
+    mimetype,
+    size: buffer.length,
+    buffer,
+    destination: "",
+    filename: "",
+    path: "",
+    stream: undefined as unknown as Express.Multer.File["stream"],
+  } as Express.Multer.File;
+
+  return uploadFile(folder, file);
+}
+
 async function fetchImages(folder: UploadFolder) {
   const prefix = `${folder}/`;
   const response = await getClient().send(
