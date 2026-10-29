@@ -1,7 +1,7 @@
 export const siteConfig = {
   credit: {
     name: "McdWebs",
-    url: "https://portfolio-two-sigma-8ktq5rj0zc.vercel.app/",
+    url: "https://www.mcd-webs.com/",
   },
   social: {
     instagram: "https://www.instagram.com/shoshihalperin?igsh=MXQwYWp5dWR3dzZ6Yw==",
