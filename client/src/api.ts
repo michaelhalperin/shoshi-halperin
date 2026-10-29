@@ -12,6 +12,7 @@ const API_BASE = import.meta.env.PROD
   : ((import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "");
 
 const REQUEST_TIMEOUT_MS = 60_000;
+const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 const GET_CACHE_TTL_MS = 60_000;
 
 type CacheEntry = { data: unknown; expiresAt: number };
@@ -86,28 +87,34 @@ export const api = {
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
-  upload: async <T>(path: string, formData: FormData) => {
+  upload: <T>(path: string, formData: FormData, onProgress?: (percent: number) => void) => {
     invalidateGetCache();
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    try {
-      const res = await fetch(`${API_BASE}${path}`, {
-        method: "POST",
-        credentials: "include",
-        signal: controller.signal,
-        body: formData,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new ApiError(res.status, data.error ?? "Upload failed");
-      return data as T;
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        throw new ApiError(0, "Request timed out");
-      }
-      throw err;
-    } finally {
-      window.clearTimeout(timer);
-    }
+    return new Promise<T>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_BASE}${path}`);
+      xhr.withCredentials = true;
+      xhr.timeout = UPLOAD_TIMEOUT_MS;
+      xhr.upload.onprogress = (event) => {
+        if (!onProgress || !event.lengthComputable || event.total === 0) return;
+        onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      };
+      xhr.onload = () => {
+        let data: { error?: string } = {};
+        try {
+          data = JSON.parse(xhr.responseText || "{}") as { error?: string };
+        } catch {
+          data = {};
+        }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(data as T);
+          return;
+        }
+        reject(new ApiError(xhr.status, data.error ?? "Upload failed"));
+      };
+      xhr.onerror = () => reject(new ApiError(0, "Upload failed"));
+      xhr.ontimeout = () => reject(new ApiError(0, "Request timed out"));
+      xhr.send(formData);
+    });
   },
   deleteWithQuery: <T>(path: string, params: Record<string, string>) => {
     const query = new URLSearchParams(params).toString();

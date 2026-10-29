@@ -115,7 +115,7 @@ function useIsMobilePicker() {
 const PANEL_GAP = 8;
 const VIEWPORT_MARGIN = 16;
 const PANEL_MAX_WIDTH = 320;
-const PANEL_ESTIMATED_HEIGHT = 380;
+const PANEL_ESTIMATED_HEIGHT = 340;
 
 function getViewportBounds() {
   const viewport = window.visualViewport;
@@ -399,44 +399,21 @@ export function DateTimePicker({
         })}
       </div>
 
-      <div className="mt-4 border-t border-stone-200 pt-4">
-        <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-          {t("pickTime")}
-        </span>
-        <div className="flex items-center gap-2">
-          <select
-            value={displayHours}
-            onChange={(e) => setTimePart(Number(e.target.value), displayMinutes)}
-            className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors focus:border-ink"
-            aria-label={t("pickTime")}
-          >
-            {Array.from({ length: 24 }, (_, hour) => {
-              const disabled = disablePast && isTodaySelected && hour < minHour;
-              return (
-                <option key={hour} value={hour} disabled={disabled}>
-                  {pad(hour)}
-                </option>
-              );
-            })}
-          </select>
-          <span className="text-stone-400">:</span>
-          <select
-            value={displayMinutes}
-            onChange={(e) => setTimePart(displayHours, Number(e.target.value))}
-            className="min-w-0 flex-1 border-b border-stone-300 bg-transparent px-0.5 py-2 text-[15px] outline-none transition-colors focus:border-ink"
-            aria-label={t("pickTime")}
-          >
-            {Array.from({ length: 60 }, (_, minute) => {
-              const disabled = disablePast && isTodaySelected && displayHours === minHour && minute < minMinute;
-              return (
-                <option key={minute} value={minute} disabled={disabled}>
-                  {pad(minute)}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-      </div>
+      <label className="mt-4 flex items-center gap-3 border-t border-stone-200 pt-4">
+        <span className="shrink-0 text-sm font-medium text-stone-500">{t("pickTime")}</span>
+        <input
+          type="time"
+          dir="ltr"
+          value={`${pad(displayHours)}:${pad(displayMinutes)}`}
+          min={isTodaySelected ? `${pad(minHour)}:${pad(minMinute)}` : undefined}
+          onChange={(e) => {
+            const match = /^(\d{1,2}):(\d{2})/.exec(e.target.value);
+            if (!match) return;
+            setTimePart(Number(match[1]), Number(match[2]));
+          }}
+          className="min-h-11 w-[4.75rem] border-b border-stone-300 bg-transparent py-2 text-base tabular-nums text-ink outline-none transition-colors focus:border-ink [&::-webkit-calendar-picker-indicator]:hidden"
+        />
+      </label>
     </>
   );
 

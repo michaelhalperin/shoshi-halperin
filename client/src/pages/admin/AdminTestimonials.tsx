@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { api, ApiError, type GalleryImage } from "../../api";
 import { PosterArrangeModal } from "../../components/PosterArrangeModal";
+import { MediaUploadStatus, PendingMediaTile, onMediaFilesDrop, useMediaUploads } from "../../components/MediaUpload";
 import { Button, ConfirmModal, ErrorNote, Spinner } from "../../components/ui";
 import { VideoThumbnail } from "../../components/VideoThumbnail";
 import { useI18n } from "../../i18n";
@@ -15,11 +16,8 @@ function reorderItems<T>(items: T[], fromIndex: number, toIndex: number) {
 
 export default function AdminTestimonials() {
   const { t } = useI18n();
-  const inputRef = useRef<HTMLInputElement>(null);
   const posterInputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<GalleryImage[] | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState<GalleryImage | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -40,6 +38,15 @@ export default function AdminTestimonials() {
   }, []);
 
   useEffect(load, [load]);
+
+  const {
+    inputRef,
+    progress,
+    pending,
+    error: uploadError,
+    uploading,
+    uploadFiles,
+  } = useMediaUploads("testimonials", load);
 
   const saveOrder = async (nextImages: GalleryImage[]) => {
     setReordering(true);
@@ -64,39 +71,6 @@ export default function AdminTestimonials() {
     setDragIndex(null);
     setDropIndex(null);
     void saveOrder(nextImages);
-  };
-
-  const uploadFiles = async (files: File[]) => {
-    if (files.length === 0) return;
-
-    setError("");
-    setUploading(true);
-    setUploadProgress({ done: 0, total: files.length });
-
-    const failures: string[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      try {
-        const formData = new FormData();
-        formData.append("file", files[i]);
-        formData.append("folder", "testimonials");
-        await api.upload("/api/admin/upload", formData);
-      } catch (err) {
-        const message = err instanceof ApiError ? err.message : t("errorGeneric");
-        failures.push(`${files[i].name}: ${message}`);
-      }
-      setUploadProgress({ done: i + 1, total: files.length });
-    }
-
-    load();
-
-    if (failures.length > 0) {
-      setError(failures.join("; "));
-    }
-
-    setUploading(false);
-    setUploadProgress(null);
-    if (inputRef.current) inputRef.current.value = "";
   };
 
   const uploadPoster = async (file: File, video: GalleryImage) => {
@@ -173,12 +147,17 @@ export default function AdminTestimonials() {
         <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-clay-600">
           {t("manageTestimonials")}
         </h2>
-        <div>
+        <div
+          onDragOver={(event) => {
+            if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+          }}
+          onDrop={(event) => onMediaFilesDrop(event, uploadFiles)}
+        >
           <input
             ref={inputRef}
             type="file"
             multiple
-            accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+            accept="image/jpeg,image/png,image/webp,image/gif,image/*,video/mp4,video/webm,video/quicktime,video/*"
             className="hidden"
             onChange={(event) => {
               const files = Array.from(event.target.files ?? []);
@@ -196,18 +175,17 @@ export default function AdminTestimonials() {
             }}
           />
           <Button disabled={busy} onClick={() => inputRef.current?.click()}>
-            {uploading
-              ? uploadProgress && uploadProgress.total > 1
-                ? `${t("uploading")} (${uploadProgress.done}/${uploadProgress.total})`
-                : t("uploading")
-              : `+ ${t("uploadTestimonialsMedia")}`}
+            + {t("uploadTestimonialsMedia")}
           </Button>
         </div>
       </div>
 
-      {(error || reorderError) && (
+      {progress && <MediaUploadStatus progress={progress} />}
+
+      {(error || uploadError || reorderError) && (
         <div className="mb-4 space-y-3">
           {error && <ErrorNote message={error} />}
+          {uploadError && <ErrorNote message={uploadError} />}
           {reorderError && <ErrorNote message={reorderError} />}
         </div>
       )}
@@ -218,10 +196,18 @@ export default function AdminTestimonials() {
         </p>
       )}
 
-      {images.length === 0 ? (
+      {images.length === 0 && pending.length === 0 ? (
         <p className="text-sm font-light text-stone-500">{t("noTestimonialsImages")}</p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {pending.map((item) => (
+            <PendingMediaTile
+              key={item.id}
+              item={item}
+              active={progress?.fileName === item.name}
+              filePercent={progress?.fileName === item.name ? progress.filePercent : 0}
+            />
+          ))}
           {images.map((image, index) => {
             const isDragging = dragIndex === index;
             const isDropTarget = dropIndex === index && dragIndex !== null && dragIndex !== index;
