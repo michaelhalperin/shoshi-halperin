@@ -43,6 +43,9 @@ export default function AdminBookings() {
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState("");
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Booking | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const load = () => {
     api.get<{ bookings: Booking[] }>("/api/admin/bookings").then((d) => setBookings(d.bookings));
@@ -72,6 +75,21 @@ export default function AdminBookings() {
       setCancelError(err instanceof ApiError ? err.message : t("errorGeneric"));
     } finally {
       setCancelBusy(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      await api.delete(`/api/bookings/${deleting.id}`);
+      setDeleting(null);
+      load();
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : t("errorGeneric"));
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -198,20 +216,20 @@ export default function AdminBookings() {
                         </div>
                       </div>
 
-                      {canAct && (
-                        <div className="grid grid-cols-2 gap-2 md:flex md:shrink-0">
-                          {b.status === "pending" ? (
-                            <Button
-                              className="min-h-11 min-w-0 md:min-h-0"
-                              disabled={approvingId === b.id}
-                              onClick={() => approve(b)}
-                            >
-                              {t("approve")}
-                            </Button>
-                          ) : null}
+                      <div className="grid grid-cols-2 gap-2 md:flex md:shrink-0">
+                        {canAct && b.status === "pending" ? (
+                          <Button
+                            className="min-h-11 min-w-0 md:min-h-0"
+                            disabled={approvingId === b.id}
+                            onClick={() => approve(b)}
+                          >
+                            {t("approve")}
+                          </Button>
+                        ) : null}
+                        {canAct ? (
                           <Button
                             variant="danger"
-                            className={`min-h-11 min-w-0 md:min-h-0 ${b.status === "pending" ? "" : "col-span-2"}`}
+                            className="min-h-11 min-w-0 md:min-h-0"
                             onClick={() => {
                               setCancelError("");
                               setCancelling(b);
@@ -219,8 +237,18 @@ export default function AdminBookings() {
                           >
                             {t("cancel")}
                           </Button>
-                        </div>
-                      )}
+                        ) : null}
+                        <Button
+                          variant="secondary"
+                          className="min-h-11 min-w-0 md:min-h-0"
+                          onClick={() => {
+                            setDeleteError("");
+                            setDeleting(b);
+                          }}
+                        >
+                          {t("delete")}
+                        </Button>
+                      </div>
                     </article>
                   );
                 })}
@@ -228,6 +256,18 @@ export default function AdminBookings() {
             </section>
           ))}
         </div>
+      )}
+
+      {deleting && (
+        <ConfirmModal
+          title={t("deleteBooking")}
+          message={t("confirmDeleteBooking")}
+          confirmLabel={t("delete")}
+          onClose={() => setDeleting(null)}
+          onConfirm={confirmDelete}
+          busy={deleteBusy}
+          error={deleteError}
+        />
       )}
 
       {cancelling && (

@@ -243,3 +243,28 @@ bookingsRouter.get("/:id/calendar.ics", async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.send(ics);
 });
+
+// Admin only: permanently delete a booking record (any status).
+bookingsRouter.delete("/:id", requireAdmin, async (req, res) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.booking.findUnique({ where: { id: req.params.id } });
+      if (!existing) throw new Error("NOT_FOUND");
+
+      // A cancelled booking already gave its coupon use back.
+      if (existing.status !== "cancelled" && existing.couponId) {
+        await tx.coupon.update({
+          where: { id: existing.couponId },
+          data: { usedCount: { decrement: 1 } },
+        });
+      }
+      await tx.booking.delete({ where: { id: existing.id } });
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    if (e instanceof Error && e.message === "NOT_FOUND") {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
