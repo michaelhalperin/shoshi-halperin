@@ -98,6 +98,7 @@ slotsRouter.put("/:id", requireAdmin, async (req, res) => {
     if (timeChanged) {
       for (const booking of slot.bookings) {
         void sendSlotChangedEmail({
+          bookingId: booking.id,
           to: booking.email!,
           name: booking.name,
           courseTitleEn: slot.course.titleEn,
@@ -131,6 +132,7 @@ slotsRouter.delete("/:id", requireAdmin, async (req, res) => {
     if (slot && slot.startsAt > new Date()) {
       for (const booking of slot.bookings) {
         void sendBookingCancellationEmail({
+          bookingId: booking.id,
           to: booking.email!,
           name: booking.name,
           courseTitleEn: slot.course.titleEn,

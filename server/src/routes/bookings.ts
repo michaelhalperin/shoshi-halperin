@@ -12,6 +12,7 @@ import {
   sendBookingConfirmationEmail,
   sendBookingRequestEmail,
 } from "../mail.js";
+import { buildIcs } from "../calendar.js";
 import { prisma } from "../prisma.js";
 
 export const bookingsRouter = Router();
@@ -99,6 +100,7 @@ bookingsRouter.post("/", async (req, res) => {
 
     // The spot is only confirmed once the admin approves it.
     void sendBookingRequestEmail({
+      bookingId: booking.id,
       to: email,
       name: booking.name,
       courseTitleEn: booking.slot.course.titleEn,
@@ -166,6 +168,7 @@ bookingsRouter.post("/:id/cancel", requireAdmin, async (req, res) => {
 
     if (result.wasActive && result.updated.email) {
       void sendBookingCancellationEmail({
+        bookingId: result.updated.id,
         to: result.updated.email,
         name: result.updated.name,
         courseTitleEn: result.updated.slot.course.titleEn,
@@ -199,6 +202,7 @@ bookingsRouter.post("/:id/approve", requireAdmin, async (req, res) => {
 
   if (booking.email) {
     void sendBookingConfirmationEmail({
+      bookingId: booking.id,
       to: booking.email,
       name: booking.name,
       courseTitleEn: booking.slot.course.titleEn,
@@ -216,4 +220,25 @@ bookingsRouter.post("/:id/approve", requireAdmin, async (req, res) => {
   }
 
   res.json({ booking });
+});
+
+// Public: the "add to calendar" link in emails. Opens in the native calendar app.
+bookingsRouter.get("/:id/calendar.ics", async (req, res) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: req.params.id },
+    include: { slot: { include: { course: true } } },
+  });
+  if (!booking || booking.status === "cancelled") return res.status(404).end();
+
+  const course = booking.slot.course;
+  const ics = buildIcs({
+    bookingId: booking.id,
+    title: booking.lang === "en" ? course.titleEn : course.titleHe,
+    startsAt: booking.slot.startsAt,
+    endsAt: booking.slot.endsAt,
+  });
+  res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+  res.setHeader("Content-Disposition", 'inline; filename="workshop.ics"');
+  res.setHeader("Cache-Control", "no-store");
+  res.send(ics);
 });

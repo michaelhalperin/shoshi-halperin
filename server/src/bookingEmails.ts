@@ -10,12 +10,14 @@ const THANK_YOU_DELAY_MS = 18 * HOUR_MS;
 const THANK_YOU_MAX_AGE_MS = 3 * 24 * HOUR_MS;
 
 function toDetails(booking: {
+  id: string;
   email: string | null;
   name: string;
   lang: string;
   slot: { startsAt: Date; endsAt: Date; course: { titleEn: string; titleHe: string } };
 }) {
   return {
+    bookingId: booking.id,
     to: booking.email!,
     name: booking.name,
     courseTitleEn: booking.slot.course.titleEn,

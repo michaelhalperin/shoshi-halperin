@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { ADMIN_EMAIL } from "./adminConfig.js";
+import { buildIcs } from "./calendar.js";
 
 type Lang = "en" | "he";
 
@@ -30,6 +31,7 @@ async function sendEmail(options: {
   logLabel: string;
   devFallback?: string;
   replyTo?: string;
+  attachments?: Array<{ filename: string; content: Buffer; contentType: string }>;
 }): Promise<boolean> {
   const resend = getResend();
   if (!resend) {
@@ -47,6 +49,7 @@ async function sendEmail(options: {
     text: options.text,
     html: options.html,
     ...(options.replyTo ? { replyTo: options.replyTo } : {}),
+    ...(options.attachments ? { attachments: options.attachments } : {}),
   });
 
   if (error) {
@@ -193,14 +196,30 @@ function courseTitleFor(details: { courseTitleEn: string; courseTitleHe: string 
   return lang === "he" ? details.courseTitleHe : details.courseTitleEn;
 }
 
-function googleCalendarUrl(title: string, startsAt: Date, endsAt: Date) {
-  const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: title,
-    dates: `${stamp(startsAt)}/${stamp(endsAt)}`,
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+// Opens in the native calendar app (iPhone, Android, Mac, Outlook) instead of one provider.
+function calendarLink(bookingId: string) {
+  return `${clientBaseUrl()}/api/bookings/${bookingId}/calendar.ics`;
+}
+
+function calendarAttachment(
+  details: { bookingId: string; startsAt: Date; endsAt: Date },
+  title: string
+) {
+  return [
+    {
+      filename: "workshop.ics",
+      content: Buffer.from(
+        buildIcs({
+          bookingId: details.bookingId,
+          title,
+          startsAt: details.startsAt,
+          endsAt: details.endsAt,
+        }),
+        "utf-8"
+      ),
+      contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+    },
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +227,7 @@ function googleCalendarUrl(title: string, startsAt: Date, endsAt: Date) {
 // ---------------------------------------------------------------------------
 
 export interface BookingEmailDetails {
+  bookingId: string;
   to: string;
   name: string;
   courseTitleEn: string;
@@ -291,7 +311,7 @@ export async function sendBookingConfirmationEmail(
     heading: t.heading,
     intro: t.intro,
     rows: [[t.course, courseTitle], [t.when, when.full], ...priceRows],
-    buttons: [{ label: t.calendar, url: googleCalendarUrl(courseTitle, details.startsAt, details.endsAt) }],
+    buttons: [{ label: t.calendar, url: calendarLink(details.bookingId) }],
     note: t.note,
   });
 
@@ -300,6 +320,7 @@ export async function sendBookingConfirmationEmail(
     subject: t.subject,
     text,
     html,
+    attachments: calendarAttachment(details, courseTitle),
     logLabel: "booking confirmation email",
     devFallback: `${details.name} — ${courseTitle} on ${when.full}`,
   });
@@ -577,7 +598,7 @@ export async function sendSlotChangedEmail(details: SlotChangedDetails): Promise
     heading: t.heading,
     intro: t.intro,
     rows: [[t.was, before.full], [t.now, after.full]],
-    buttons: [{ label: t.button, url: googleCalendarUrl(courseTitle, details.startsAt, details.endsAt) }],
+    buttons: [{ label: t.button, url: calendarLink(details.bookingId) }],
     note: t.note,
   });
 
@@ -586,6 +607,7 @@ export async function sendSlotChangedEmail(details: SlotChangedDetails): Promise
     subject: t.subject,
     text,
     html,
+    attachments: calendarAttachment(details, courseTitle),
     logLabel: "slot changed email",
     devFallback: `${details.name} — ${courseTitle}: ${before.full} → ${after.full}`,
   });
