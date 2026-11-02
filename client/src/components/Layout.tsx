@@ -264,15 +264,24 @@ export default function Layout() {
               <p className="mt-0.5 text-xs text-stone-500">{t("footer")}</p>
             </div>
 
-            {socialItems.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                {socialItems.map((item) => (
-                  <SocialLink key={item.key} href={item.href} label={item.label}>
-                    {item.icon}
-                  </SocialLink>
-                ))}
-              </div>
-            )}
+            <div className="flex items-center gap-1.5">
+              {socialItems.map((item) => (
+                <SocialLink key={item.key} href={item.href} label={item.label}>
+                  {item.icon}
+                </SocialLink>
+              ))}
+              <Link
+                to="/contact"
+                aria-label={t("contactTitle")}
+                title={t("contactTitle")}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 transition-colors hover:border-clay-300 hover:bg-clay-50 hover:text-clay-700"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                  <rect x="3" y="5" width="18" height="14" rx="2.5" />
+                  <path d="m4 7 8 6 8-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-stone-200/80 pt-3">
@@ -295,12 +304,6 @@ export default function Layout() {
                 </a>
               </span>
             </p>
-            <Link
-              to="/contact"
-              className="text-[11px] font-semibold uppercase tracking-[0.14em] text-clay-600 transition-colors hover:text-clay-800"
-            >
-              {t("contactTitle")}
-            </Link>
             <Link
               to={isAdmin ? "/admin" : "/login"}
               className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-300 transition-colors hover:text-stone-500"
