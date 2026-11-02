@@ -281,6 +281,16 @@ const dictionaries = {
     attributedLinkPreview: "Attributed link preview",
     confirmDeleteShopLink: "Delete this shop link?",
     errorGeneric: "Something went wrong. Please try again.",
+    errSLOT_NOT_FOUND: "This time slot no longer exists.",
+    errSLOT_IN_PAST: "This time slot has already passed.",
+    errSLOT_FULL: "This time slot is fully booked.",
+    errALREADY_BOOKED: "This phone number already has a booking for this time slot.",
+    errCOUPON_NOT_FOUND: "Invalid coupon code",
+    errCOUPON_INACTIVE: "This coupon is no longer active.",
+    errCOUPON_EXPIRED: "This coupon has expired.",
+    errCOUPON_EXHAUSTED: "This coupon has reached its usage limit.",
+    errCOUPON_WRONG_COURSE: "This coupon does not apply to this course.",
+    errCOUPON_CUSTOM_PRICE: "Coupons cannot be applied to courses with custom pricing.",
     loadError: "Couldn't load data. Check your connection and try again.",
     retry: "Try again",
     notFoundTitle: "Page not found",
@@ -570,6 +580,16 @@ const dictionaries = {
     attributedLinkPreview: "תצוגה מקדימה של הקישור עם מעקב",
     confirmDeleteShopLink: "למחוק את קישור החנות?",
     errorGeneric: "משהו השתבש. נסו שוב.",
+    errSLOT_NOT_FOUND: "המועד הזה כבר לא קיים.",
+    errSLOT_IN_PAST: "המועד הזה כבר עבר.",
+    errSLOT_FULL: "המועד הזה מלא.",
+    errALREADY_BOOKED: "למספר הטלפון הזה כבר יש הזמנה למועד הזה.",
+    errCOUPON_NOT_FOUND: "קוד קופון לא תקין",
+    errCOUPON_INACTIVE: "הקופון הזה כבר לא פעיל.",
+    errCOUPON_EXPIRED: "תוקף הקופון הזה פג.",
+    errCOUPON_EXHAUSTED: "הקופון הזה הגיע למספר השימושים המקסימלי.",
+    errCOUPON_WRONG_COURSE: "הקופון הזה לא תקף לסדנה הזו.",
+    errCOUPON_CUSTOM_PRICE: "אי אפשר להשתמש בקופון בסדנאות במחיר מותאם אישית.",
     loadError: "לא הצלחנו לטעון את הנתונים. בדקו את החיבור ונסו שוב.",
     retry: "נסו שוב",
     notFoundTitle: "הדף לא נמצא",
@@ -583,6 +603,10 @@ const dictionaries = {
 
 export type Lang = keyof typeof dictionaries;
 export type TKey = keyof (typeof dictionaries)["en"];
+
+export function isTKey(key: string): key is TKey {
+  return key in dictionaries.en;
+}
 
 interface I18nContextValue {
   lang: Lang;

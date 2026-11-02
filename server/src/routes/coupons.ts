@@ -35,11 +35,13 @@ couponsRouter.post("/validate", async (req, res) => {
   if (!course) return res.status(404).json({ error: "Course not found" });
 
   const coupon = await prisma.coupon.findUnique({ where: { code } });
-  if (!coupon) return res.status(404).json({ error: couponErrorMessages.COUPON_NOT_FOUND });
+  if (!coupon) return res
+      .status(404)
+      .json({ error: couponErrorMessages.COUPON_NOT_FOUND, code: "COUPON_NOT_FOUND" });
 
   const result = validateCouponForCourse(coupon, course.id, course.price, course.customPrice);
   if (typeof result === "string") {
-    return res.status(400).json({ error: couponErrorMessages[result] });
+    return res.status(400).json({ error: couponErrorMessages[result], code: result });
   }
 
   res.json({

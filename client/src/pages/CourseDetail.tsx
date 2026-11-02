@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { api, ApiError, type CouponValidation, type Course, type Slot } from "../api";
 import SlotCalendar, { toDateKey } from "../components/SlotCalendar";
 import { Button, CourseImage, ErrorNote, Input, Modal, ModalActions, OrnamentalDivider, Spinner } from "../components/ui";
-import { formatDateTime, formatTime, useI18n } from "../i18n";
+import { formatDateTime, formatTime, isTKey, useI18n } from "../i18n";
 import { siteConfig } from "../site";
 import { descriptionParagraphs } from "../text";
 import NotFound from "./NotFound";
@@ -77,6 +77,13 @@ export default function CourseDetail() {
     setBookingSlot(slot);
   };
 
+  // Server messages are English; known error codes are shown in the visitor's language instead.
+  const apiErrorText = (err: unknown, fallback: string) => {
+    if (!(err instanceof ApiError)) return fallback;
+    const key = `err${err.code ?? ""}`;
+    return isTKey(key) ? t(key) : fallback;
+  };
+
   const applyCoupon = async () => {
     if (!course || !couponCode.trim()) return;
     setCouponError("");
@@ -90,7 +97,7 @@ export default function CourseDetail() {
       setCouponCode(result.code);
     } catch (err) {
       setCouponResult(null);
-      setCouponError(err instanceof ApiError ? err.message : t("couponInvalid"));
+      setCouponError(apiErrorText(err, t("couponInvalid")));
     } finally {
       setCouponBusy(false);
     }
@@ -114,7 +121,7 @@ export default function CourseDetail() {
       setSuccess(t("bookedSuccess"));
       loadSlots();
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : t("errorGeneric"));
+      setFormError(apiErrorText(err, t("errorGeneric")));
     } finally {
       setBusy(false);
     }

@@ -14,8 +14,16 @@ function getFromAddress() {
   return process.env.RESEND_FROM ?? "Shoshi Halperin <onboarding@resend.dev>";
 }
 
+const PRODUCTION_SITE_URL = "https://www.shoshihalperin.com";
+
+// The address used in links inside emails. CLIENT_URL also lists the *.vercel.app
+// address (for CORS), so production links use the real domain instead.
 export function clientBaseUrl() {
-  const url = (process.env.CLIENT_URL ?? "http://localhost:5173").split(",")[0]?.trim();
+  const url =
+    process.env.PUBLIC_SITE_URL ??
+    (process.env.NODE_ENV === "production"
+      ? PRODUCTION_SITE_URL
+      : (process.env.CLIENT_URL ?? "http://localhost:5173").split(",")[0]?.trim());
   return url?.replace(/\/$/, "") ?? "http://localhost:5173";
 }
 

@@ -38,6 +38,7 @@ Password reset emails are sent via [Resend](https://resend.com). Configure on Re
 | `RESEND_API_KEY` | Resend API key |
 | `RESEND_FROM` | Verified sender, e.g. `Shoshi Halperin <noreply@yourdomain.com>` |
 | `ADMIN_NOTIFY_EMAIL` | Optional. Where new-booking alerts and contact messages go (defaults to the admin email) |
+| `PUBLIC_SITE_URL` | Optional. Site address used in email links (defaults to `https://www.shoshihalperin.com` in production) |
 
 ## What's included
 

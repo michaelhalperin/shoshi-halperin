@@ -1,8 +1,10 @@
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -65,7 +67,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options,
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new ApiError(res.status, data.error ?? "Request failed");
+    if (!res.ok) throw new ApiError(res.status, data.error ?? "Request failed", data.code);
     if (method === "GET" && isCacheableGet(path)) {
       setCachedGet(path, data);
     }

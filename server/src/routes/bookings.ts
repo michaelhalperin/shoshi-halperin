@@ -126,6 +126,7 @@ bookingsRouter.post("/", async (req, res) => {
     res.status(201).json({ booking });
   } catch (e) {
     const code = e instanceof Error ? e.message : "";
+    // `code` lets the client show the message in the visitor's language.
     const map: Record<string, [number, string]> = {
       SLOT_NOT_FOUND: [404, "Time slot not found"],
       SLOT_IN_PAST: [400, "This time slot is in the past"],
@@ -139,7 +140,7 @@ bookingsRouter.post("/", async (req, res) => {
       COUPON_CUSTOM_PRICE: [400, couponErrorMessages.COUPON_CUSTOM_PRICE],
     };
     const [status, message] = map[code] ?? [500, "Booking failed"];
-    res.status(status).json({ error: message });
+    res.status(status).json({ error: message, code: map[code] ? code : "BOOKING_FAILED" });
   }
 });
 

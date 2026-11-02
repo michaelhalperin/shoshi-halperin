@@ -4,7 +4,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { ADMIN_EMAIL } from "../adminConfig.js";
 import { clearAuthCookie, readUser, requireAuth, setAuthCookie } from "../auth.js";
-import { sendPasswordResetEmail } from "../mail.js";
+import { clientBaseUrl, sendPasswordResetEmail } from "../mail.js";
 import { prisma } from "../prisma.js";
 
 export const authRouter = Router();
@@ -23,10 +23,6 @@ const setPasswordSchema = z.object({ password: passwordSchema, confirmPassword: 
 const resetPasswordSchema = z.object({ token: z.string().min(1), password: passwordSchema });
 const forgotPasswordSchema = z.object({ email: z.string().email() });
 
-function clientBaseUrl() {
-  const url = (process.env.CLIENT_URL ?? "http://localhost:5173").split(",")[0]?.trim();
-  return url?.replace(/\/$/, "") ?? "http://localhost:5173";
-}
 
 function toPublicUser(user: {
   id: string;
