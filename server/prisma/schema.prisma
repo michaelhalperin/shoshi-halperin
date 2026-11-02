@@ -88,13 +88,16 @@ model Booking {
   name           String
   phone          String
   email          String?
-  status         String   @default("confirmed")
+  status         String   @default("pending")
   couponId       String?
   coupon         Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
   couponCode     String?
   originalPrice  Float?
   finalPrice     Float?
   discountAmount Float?
+  lang           String   @default("he")
+  reminderSentAt DateTime?
+  thankYouSentAt DateTime?
   createdAt      DateTime @default(now())
 }
 

@@ -296,6 +296,12 @@ export default function Layout() {
               </span>
             </p>
             <Link
+              to="/contact"
+              className="text-[11px] font-semibold uppercase tracking-[0.14em] text-clay-600 transition-colors hover:text-clay-800"
+            >
+              {t("contactTitle")}
+            </Link>
+            <Link
               to={isAdmin ? "/admin" : "/login"}
               className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-300 transition-colors hover:text-stone-500"
             >

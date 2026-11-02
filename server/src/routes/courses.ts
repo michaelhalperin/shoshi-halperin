@@ -56,7 +56,7 @@ coursesRouter.put("/:id", requireAdmin, async (req, res) => {
   ) {
     const slots = await prisma.timeSlot.findMany({
       where: { courseId: req.params.id },
-      include: { _count: { select: { bookings: { where: { status: "confirmed" } } } } },
+      include: { _count: { select: { bookings: { where: { status: { in: ["pending", "confirmed"] } } } } } },
     });
     if (slots.some((s) => s._count.bookings > parsed.data.maxParticipants!)) {
       return res.status(400).json({

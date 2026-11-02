@@ -384,7 +384,7 @@ adminRouter.get("/slots", async (req, res) => {
     orderBy: { startsAt: "desc" },
     include: {
       course: { select: { id: true, titleEn: true, titleHe: true, maxParticipants: true } },
-      _count: { select: { bookings: { where: { status: "confirmed" } } } },
+      _count: { select: { bookings: { where: { status: { in: ["pending", "confirmed"] } } } } },
     },
   });
   res.json({

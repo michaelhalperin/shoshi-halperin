@@ -6,12 +6,14 @@ import express from "express";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { bookingsRouter } from "./routes/bookings.js";
+import { contactRouter } from "./routes/contact.js";
 import { couponsRouter } from "./routes/coupons.js";
 import { coursesRouter } from "./routes/courses.js";
 import { aboutRouter } from "./routes/about.js";
 import { galleryRouter } from "./routes/gallery.js";
 import { recipesRouter } from "./routes/recipes.js";
 import { shopLinksRouter } from "./routes/shopLinks.js";
+import { startBookingEmailScheduler } from "./bookingEmails.js";
 import { slotsRouter } from "./routes/slots.js";
 import { testimonialsRouter } from "./routes/testimonials.js";
 
@@ -49,6 +51,7 @@ app.use("/api/shop-links", shopLinksRouter);
 app.use("/api/slots", slotsRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/coupons", couponsRouter);
+app.use("/api/contact", contactRouter);
 app.use("/api/about", aboutRouter);
 app.use("/api/gallery", galleryRouter);
 app.use("/api/testimonials", testimonialsRouter);
@@ -63,5 +66,6 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
+  startBookingEmailScheduler();
   console.log(`CORS allowed origins: ${clientOrigins.join(", ") || "(none)"}`);
 });

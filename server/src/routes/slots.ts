@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { requireAdmin } from "../auth.js";
+import { sendBookingCancellationEmail, sendSlotChangedEmail } from "../mail.js";
 import { prisma } from "../prisma.js";
 import { publicCache } from "../publicCache.js";
 
@@ -26,7 +27,7 @@ slotsRouter.get("/", publicCache(30), async (req, res) => {
     orderBy: { startsAt: "asc" },
     include: {
       course: { select: { maxParticipants: true } },
-      _count: { select: { bookings: { where: { status: "confirmed" } } } },
+      _count: { select: { bookings: { where: { status: { in: ["pending", "confirmed"] } } } } },
     },
   });
   res.json({
@@ -85,8 +86,33 @@ slotsRouter.put("/:id", requireAdmin, async (req, res) => {
         ...(endsAt ? { endsAt: new Date(endsAt) } : {}),
         capacity: existing.course.maxParticipants,
       },
+      include: {
+        course: { select: { titleEn: true, titleHe: true } },
+        bookings: { where: { status: { in: ["pending", "confirmed"] }, email: { not: null } } },
+      },
     });
-    res.json({ slot });
+
+    const timeChanged =
+      slot.startsAt.getTime() !== existing.startsAt.getTime() ||
+      slot.endsAt.getTime() !== existing.endsAt.getTime();
+    if (timeChanged) {
+      for (const booking of slot.bookings) {
+        void sendSlotChangedEmail({
+          to: booking.email!,
+          name: booking.name,
+          courseTitleEn: slot.course.titleEn,
+          courseTitleHe: slot.course.titleHe,
+          startsAt: slot.startsAt,
+          endsAt: slot.endsAt,
+          oldStartsAt: existing.startsAt,
+          oldEndsAt: existing.endsAt,
+          lang: booking.lang === "en" ? "en" : "he",
+        });
+      }
+    }
+
+    const { bookings: _bookings, course: _course, ...slotData } = slot;
+    res.json({ slot: slotData });
   } catch {
     res.status(404).json({ error: "Slot not found" });
   }
@@ -94,7 +120,27 @@ slotsRouter.put("/:id", requireAdmin, async (req, res) => {
 
 slotsRouter.delete("/:id", requireAdmin, async (req, res) => {
   try {
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: req.params.id },
+      include: {
+        course: { select: { titleEn: true, titleHe: true } },
+        bookings: { where: { status: { in: ["pending", "confirmed"] }, email: { not: null } } },
+      },
+    });
     await prisma.timeSlot.delete({ where: { id: req.params.id } });
+    if (slot && slot.startsAt > new Date()) {
+      for (const booking of slot.bookings) {
+        void sendBookingCancellationEmail({
+          to: booking.email!,
+          name: booking.name,
+          courseTitleEn: slot.course.titleEn,
+          courseTitleHe: slot.course.titleHe,
+          startsAt: slot.startsAt,
+          endsAt: slot.endsAt,
+          lang: booking.lang === "en" ? "en" : "he",
+        });
+      }
+    }
     res.json({ ok: true });
   } catch {
     res.status(404).json({ error: "Slot not found" });

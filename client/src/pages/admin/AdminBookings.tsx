@@ -9,6 +9,7 @@ export default function AdminBookings() {
   const [cancelling, setCancelling] = useState<Booking | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const load = () => {
     api.get<{ bookings: Booking[] }>("/api/admin/bookings").then((d) => setBookings(d.bookings));
@@ -27,6 +28,16 @@ export default function AdminBookings() {
       setCancelError(err instanceof ApiError ? err.message : t("errorGeneric"));
     } finally {
       setCancelBusy(false);
+    }
+  };
+
+  const approve = async (b: Booking) => {
+    setApprovingId(b.id);
+    try {
+      await api.post(`/api/bookings/${b.id}/approve`);
+      load();
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -86,6 +97,8 @@ export default function AdminBookings() {
                   <td className="px-4 py-3">
                     {b.status === "cancelled" ? (
                       <Badge tone="red">{t("cancelled")}</Badge>
+                    ) : b.status === "pending" ? (
+                      <Badge tone="amber">{t("pendingApproval")}</Badge>
                     ) : isPast ? (
                       <Badge tone="stone">{t("completed")}</Badge>
                     ) : (
@@ -93,16 +106,23 @@ export default function AdminBookings() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-end">
-                    {b.status === "confirmed" && isUpcoming && (
-                      <Button
-                        variant="danger"
-                        onClick={() => {
-                          setCancelError("");
-                          setCancelling(b);
-                        }}
-                      >
-                        {t("cancel")}
-                      </Button>
+                    {(b.status === "confirmed" || b.status === "pending") && isUpcoming && (
+                      <div className="flex justify-end gap-2">
+                        {b.status === "pending" && (
+                          <Button disabled={approvingId === b.id} onClick={() => approve(b)}>
+                            {t("approve")}
+                          </Button>
+                        )}
+                        <Button
+                          variant="danger"
+                          onClick={() => {
+                            setCancelError("");
+                            setCancelling(b);
+                          }}
+                        >
+                          {t("cancel")}
+                        </Button>
+                      </div>
                     )}
                   </td>
                 </tr>

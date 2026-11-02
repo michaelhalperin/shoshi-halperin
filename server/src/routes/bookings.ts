@@ -6,7 +6,12 @@ import {
   normalizeCouponCode,
   validateCouponForCourse,
 } from "../coupons.js";
-import { sendBookingCancellationEmail, sendBookingConfirmationEmail } from "../mail.js";
+import {
+  sendAdminNewBookingEmail,
+  sendBookingCancellationEmail,
+  sendBookingConfirmationEmail,
+  sendBookingRequestEmail,
+} from "../mail.js";
 import { prisma } from "../prisma.js";
 
 export const bookingsRouter = Router();
@@ -33,7 +38,7 @@ bookingsRouter.post("/", async (req, res) => {
         where: { id: slotId },
         include: {
           course: true,
-          _count: { select: { bookings: { where: { status: "confirmed" } } } },
+          _count: { select: { bookings: { where: { status: { in: ["pending", "confirmed"] } } } } },
         },
       });
       if (!slot) throw new Error("SLOT_NOT_FOUND");
@@ -41,7 +46,7 @@ bookingsRouter.post("/", async (req, res) => {
       if (slot._count.bookings >= slot.course.maxParticipants) throw new Error("SLOT_FULL");
 
       const duplicate = await tx.booking.findFirst({
-        where: { slotId, phone, status: "confirmed" },
+        where: { slotId, phone, status: { in: ["pending", "confirmed"] } },
       });
       if (duplicate) throw new Error("ALREADY_BOOKED");
 
@@ -86,26 +91,35 @@ bookingsRouter.post("/", async (req, res) => {
           originalPrice,
           finalPrice,
           discountAmount,
+          lang: lang ?? "he",
         },
         include: { slot: { include: { course: true } } },
       });
     });
 
-    void sendBookingConfirmationEmail({
+    // The spot is only confirmed once the admin approves it.
+    void sendBookingRequestEmail({
       to: email,
       name: booking.name,
       courseTitleEn: booking.slot.course.titleEn,
       courseTitleHe: booking.slot.course.titleHe,
       startsAt: booking.slot.startsAt,
       endsAt: booking.slot.endsAt,
-      price: booking.slot.course.price,
-      customPrice: booking.slot.course.customPrice,
-      originalPrice: booking.originalPrice,
-      finalPrice: booking.finalPrice,
-      discountAmount: booking.discountAmount,
-      couponCode: booking.couponCode,
       lang,
     });
+
+    void (async () => {
+      const taken = await prisma.booking.count({ where: { slotId, status: { in: ["pending", "confirmed"] } } });
+      await sendAdminNewBookingEmail({
+        name: booking.name,
+        phone: booking.phone,
+        email: booking.email,
+        courseTitleHe: booking.slot.course.titleHe,
+        startsAt: booking.slot.startsAt,
+        endsAt: booking.slot.endsAt,
+        spotsLeft: booking.slot.course.maxParticipants - taken,
+      });
+    })().catch((err) => console.error("Admin booking alert failed:", err));
 
     res.status(201).json({ booking });
   } catch (e) {
@@ -140,17 +154,17 @@ bookingsRouter.post("/:id/cancel", requireAdmin, async (req, res) => {
         include: { slot: { include: { course: true } } },
       });
 
-      if (existing.status === "confirmed" && existing.couponId) {
+      if (existing.status !== "cancelled" && existing.couponId) {
         await tx.coupon.update({
           where: { id: existing.couponId },
           data: { usedCount: { decrement: 1 } },
         });
       }
 
-      return { updated, wasConfirmed: existing.status === "confirmed" };
+      return { updated, wasActive: existing.status !== "cancelled" };
     });
 
-    if (result.wasConfirmed && result.updated.email) {
+    if (result.wasActive && result.updated.email) {
       void sendBookingCancellationEmail({
         to: result.updated.email,
         name: result.updated.name,
@@ -158,6 +172,7 @@ bookingsRouter.post("/:id/cancel", requireAdmin, async (req, res) => {
         courseTitleHe: result.updated.slot.course.titleHe,
         startsAt: result.updated.slot.startsAt,
         endsAt: result.updated.slot.endsAt,
+        lang: result.updated.lang === "en" ? "en" : "he",
       });
     }
 
@@ -166,4 +181,39 @@ bookingsRouter.post("/:id/cancel", requireAdmin, async (req, res) => {
     const message = e instanceof Error && e.message === "NOT_FOUND" ? 404 : 500;
     res.status(message).json({ error: "Booking not found" });
   }
+});
+
+// Admin only: approve a pending booking request and confirm the spot to the visitor.
+bookingsRouter.post("/:id/approve", requireAdmin, async (req, res) => {
+  const existing = await prisma.booking.findUnique({ where: { id: req.params.id } });
+  if (!existing) return res.status(404).json({ error: "Booking not found" });
+  if (existing.status !== "pending") {
+    return res.status(409).json({ error: "Only pending bookings can be approved" });
+  }
+
+  const booking = await prisma.booking.update({
+    where: { id: req.params.id },
+    data: { status: "confirmed" },
+    include: { slot: { include: { course: true } } },
+  });
+
+  if (booking.email) {
+    void sendBookingConfirmationEmail({
+      to: booking.email,
+      name: booking.name,
+      courseTitleEn: booking.slot.course.titleEn,
+      courseTitleHe: booking.slot.course.titleHe,
+      startsAt: booking.slot.startsAt,
+      endsAt: booking.slot.endsAt,
+      price: booking.slot.course.price,
+      customPrice: booking.slot.course.customPrice,
+      originalPrice: booking.originalPrice,
+      finalPrice: booking.finalPrice,
+      discountAmount: booking.discountAmount,
+      couponCode: booking.couponCode,
+      lang: booking.lang === "en" ? "en" : "he",
+    });
+  }
+
+  res.json({ booking });
 });
