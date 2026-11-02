@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiError, type Course, type Slot } from "../../api";
+import Dropdown from "../../components/Dropdown";
 import { DateTimePicker, toLocalInputValue } from "../../components/DateTimePicker";
 import { Button, ConfirmModal, ErrorNote, Modal, ModalActions, Select, Spinner } from "../../components/ui";
 import { formatDateTime, formatSlotDateParts, formatTime, useI18n, type Lang } from "../../i18n";
@@ -175,22 +176,18 @@ export default function AdminSlots() {
           {t("manageSlots")}
         </h2>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <select
+          <Dropdown
             value={filter}
-            aria-label={t("allCourses")}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              load(e.target.value);
+            onChange={(value) => {
+              setFilter(value);
+              load(value);
             }}
-            className="min-h-11 w-full border-b border-stone-300 bg-transparent px-1 py-2 text-base outline-none focus:border-ink sm:min-h-0 sm:w-auto sm:text-sm"
-          >
-            <option value="">{t("allCourses")}</option>
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {pick(c, "title")}
-              </option>
-            ))}
-          </select>
+            ariaLabel={t("allCourses")}
+            options={[
+              { value: "", label: t("allCourses") },
+              ...courses.map((c) => ({ value: c.id, label: pick(c, "title") })),
+            ]}
+          />
           <Button className="min-h-11 w-full sm:min-h-0 sm:w-auto" onClick={openNew}>
             + {t("newSlot")}
           </Button>

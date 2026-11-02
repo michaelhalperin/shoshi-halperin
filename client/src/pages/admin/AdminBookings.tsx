@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiError, type Booking } from "../../api";
+import Dropdown from "../../components/Dropdown";
 import { Badge, Button, ConfirmModal, Spinner } from "../../components/ui";
 import { formatSlotDateParts, formatTime, useI18n, type Lang } from "../../i18n";
 
@@ -113,19 +114,15 @@ export default function AdminBookings() {
         <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-clay-600">
           {t("manageBookings")}
         </h2>
-        <select
+        <Dropdown
           value={filter}
-          aria-label={t("allCourses")}
-          onChange={(e) => setFilter(e.target.value)}
-          className="min-h-11 w-full border-b border-stone-300 bg-transparent px-1 py-2 text-base outline-none focus:border-ink sm:min-h-0 sm:w-auto sm:text-sm"
-        >
-          <option value="">{t("allCourses")}</option>
-          {courses.map((c) => (
-            <option key={c.id} value={c.id}>
-              {pick(c, "title")}
-            </option>
-          ))}
-        </select>
+          onChange={setFilter}
+          ariaLabel={t("allCourses")}
+          options={[
+            { value: "", label: t("allCourses") },
+            ...courses.map((c) => ({ value: c.id, label: pick(c, "title") })),
+          ]}
+        />
       </div>
 
       {days.length === 0 ? (
