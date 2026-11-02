@@ -1,11 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, ApiError, type Booking } from "../../api";
 import { Badge, Button, ConfirmModal, Spinner } from "../../components/ui";
-import { formatDateTime, useI18n } from "../../i18n";
+import { formatSlotDateParts, formatTime, useI18n, type Lang } from "../../i18n";
+
+function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function groupBookingsByDay(bookings: Booking[], lang: Lang) {
+  const map = new Map<string, Booking[]>();
+  for (const booking of bookings) {
+    const d = new Date(booking.slot.startsAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const list = map.get(key);
+    if (list) list.push(booking);
+    else map.set(key, [booking]);
+  }
+
+  return [...map.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .map(([key, items]) => ({
+      key,
+      items: [...items].sort(
+        (a, b) =>
+          +new Date(a.slot.startsAt) - +new Date(b.slot.startsAt) || a.name.localeCompare(b.name)
+      ),
+      parts: formatSlotDateParts(items[0].slot.startsAt, lang),
+      past: items.every((b) => new Date(b.slot.endsAt).getTime() < Date.now()),
+    }));
+}
 
 export default function AdminBookings() {
   const { t, lang, pick } = useI18n();
   const [bookings, setBookings] = useState<Booking[] | null>(null);
+  const [filter, setFilter] = useState("");
   const [cancelling, setCancelling] = useState<Booking | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState("");
@@ -15,6 +48,17 @@ export default function AdminBookings() {
     api.get<{ bookings: Booking[] }>("/api/admin/bookings").then((d) => setBookings(d.bookings));
   };
   useEffect(load, []);
+
+  const courses = useMemo(() => {
+    const map = new Map<string, Booking["slot"]["course"]>();
+    for (const b of bookings ?? []) map.set(b.slot.course.id, b.slot.course);
+    return [...map.values()].sort((a, b) => pick(a, "title").localeCompare(pick(b, "title")));
+  }, [bookings, pick]);
+
+  const days = useMemo(() => {
+    const visible = (bookings ?? []).filter((b) => !filter || b.slot.course.id === filter);
+    return groupBookingsByDay(visible, lang);
+  }, [bookings, filter, lang]);
 
   const confirmCancel = async () => {
     if (!cancelling) return;
@@ -47,97 +91,144 @@ export default function AdminBookings() {
 
   return (
     <div>
-      <h2 className="mb-5 text-xs font-semibold uppercase tracking-[0.25em] text-clay-600">
-        {t("manageBookings")}
-      </h2>
-      <div className="overflow-x-auto border-y border-stone-200 bg-white">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead>
-            <tr className="border-b border-stone-200 text-start text-[11px] uppercase tracking-[0.14em] text-stone-400">
-              <th className="px-4 py-3 text-start font-semibold">{t("student")}</th>
-              <th className="px-4 py-3 text-start font-semibold">{t("course")}</th>
-              <th className="px-4 py-3 text-start font-semibold">{t("when")}</th>
-              <th className="px-4 py-3 text-start font-semibold">{t("price")}</th>
-              <th className="px-4 py-3 text-start font-semibold">{t("status")}</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {bookings.map((b) => {
-              const isPast = new Date(b.slot.endsAt).getTime() < now;
-              const isUpcoming = new Date(b.slot.startsAt).getTime() >= now;
-              return (
-                <tr key={b.id} className="border-b border-stone-100 last:border-0">
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-ink">{b.name}</div>
-                    <div className="text-xs text-stone-500">
-                      {b.phone}
-                      {b.email ? ` · ${b.email}` : ""}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-stone-700">{pick(b.slot.course, "title")}</td>
-                  <td className="px-4 py-3 text-stone-600">{formatDateTime(b.slot.startsAt, lang)}</td>
-                  <td className="px-4 py-3 text-stone-600">
-                    {b.finalPrice != null ? (
-                      <div>
-                        <div className="font-semibold text-ink">₪{b.finalPrice}</div>
-                        {b.discountAmount ? (
-                          <div className="text-xs text-stone-500">
-                            ₪{b.originalPrice} · -₪{b.discountAmount}
-                            {b.couponCode ? ` (${b.couponCode})` : ""}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : b.slot.course.customPrice ? (
-                      <span>{t("contactForPrice")}</span>
-                    ) : (
-                      <span>₪{b.slot.course.price}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {b.status === "cancelled" ? (
-                      <Badge tone="red">{t("cancelled")}</Badge>
-                    ) : b.status === "pending" ? (
-                      <Badge tone="amber">{t("pendingApproval")}</Badge>
-                    ) : isPast ? (
-                      <Badge tone="stone">{t("completed")}</Badge>
-                    ) : (
-                      <Badge tone="green">{t("confirmed")}</Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-end">
-                    {(b.status === "confirmed" || b.status === "pending") && isUpcoming && (
-                      <div className="flex justify-end gap-2">
-                        {b.status === "pending" && (
-                          <Button disabled={approvingId === b.id} onClick={() => approve(b)}>
-                            {t("approve")}
-                          </Button>
-                        )}
-                        <Button
-                          variant="danger"
-                          onClick={() => {
-                            setCancelError("");
-                            setCancelling(b);
-                          }}
-                        >
-                          {t("cancel")}
-                        </Button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {bookings.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-stone-500">
-                  —
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="mb-6 flex flex-col gap-4 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-clay-600">
+          {t("manageBookings")}
+        </h2>
+        <select
+          value={filter}
+          aria-label={t("allCourses")}
+          onChange={(e) => setFilter(e.target.value)}
+          className="min-h-11 w-full border-b border-stone-300 bg-transparent px-1 py-2 text-base outline-none focus:border-ink sm:min-h-0 sm:w-auto sm:text-sm"
+        >
+          <option value="">{t("allCourses")}</option>
+          {courses.map((c) => (
+            <option key={c.id} value={c.id}>
+              {pick(c, "title")}
+            </option>
+          ))}
+        </select>
       </div>
+
+      {days.length === 0 ? (
+        <p className="border-y border-stone-200 bg-white px-4 py-8 text-center font-light text-stone-500 sm:px-5">
+          —
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {days.map((day) => (
+            <section key={day.key} className="min-w-0">
+              <h3 className={`mb-2 px-4 md:px-5 ${day.past ? "text-stone-400" : "text-ink"}`}>
+                <time dateTime={day.key} className="flex items-baseline gap-2">
+                  <span className="text-2xl font-semibold leading-none tabular-nums" dir="ltr">
+                    {day.parts.day}
+                  </span>
+                  <span className={`text-sm font-medium ${day.past ? "text-stone-400" : "text-stone-500"}`}>
+                    {day.parts.month}
+                    {day.parts.showYear ? ` ${day.parts.year}` : ""}
+                    <span className="text-stone-300"> · </span>
+                    {day.parts.weekday}
+                  </span>
+                </time>
+              </h3>
+
+              <div className="divide-y divide-stone-200 border-y border-stone-200 bg-white">
+                {day.items.map((b) => {
+                  const isPast = new Date(b.slot.endsAt).getTime() < now;
+                  const isUpcoming = new Date(b.slot.startsAt).getTime() >= now;
+                  const canAct = (b.status === "confirmed" || b.status === "pending") && isUpcoming;
+                  return (
+                    <article
+                      key={b.id}
+                      className="flex flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between md:gap-4 md:px-5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <h4 className="font-display text-base font-semibold leading-snug text-ink md:text-lg">
+                            {b.name}
+                          </h4>
+                          {b.status === "cancelled" ? (
+                            <Badge tone="red">{t("cancelled")}</Badge>
+                          ) : b.status === "pending" ? (
+                            <Badge tone="amber">{t("pendingApproval")}</Badge>
+                          ) : isPast ? (
+                            <Badge tone="stone">{t("completed")}</Badge>
+                          ) : (
+                            <Badge tone="green">{t("confirmed")}</Badge>
+                          )}
+                        </div>
+                        <p className="mt-0.5 break-words text-xs text-stone-500">
+                          <span dir="ltr">{b.phone}</span>
+                          {b.email ? ` · ${b.email}` : ""}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                          <span className="font-medium text-clay-700">{pick(b.slot.course, "title")}</span>
+                          <span className="text-stone-300" aria-hidden>
+                            ·
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 font-medium text-ink">
+                            <span className="text-stone-400" aria-hidden>
+                              <ClockIcon />
+                            </span>
+                            <time dateTime={b.slot.startsAt} className="tabular-nums" dir="ltr">
+                              {formatTime(b.slot.startsAt, lang)}
+                              <span className="text-stone-300"> – </span>
+                              {formatTime(b.slot.endsAt, lang)}
+                            </time>
+                          </span>
+                          <span className="text-stone-300" aria-hidden>
+                            ·
+                          </span>
+                          {b.finalPrice != null ? (
+                            <span className="text-stone-600">
+                              <span className="font-semibold text-ink">₪{b.finalPrice}</span>
+                              {b.discountAmount ? (
+                                <span className="text-xs text-stone-500">
+                                  {" "}
+                                  (₪{b.originalPrice} · -₪{b.discountAmount}
+                                  {b.couponCode ? ` ${b.couponCode}` : ""})
+                                </span>
+                              ) : null}
+                            </span>
+                          ) : b.slot.course.customPrice ? (
+                            <span className="text-stone-600">{t("contactForPrice")}</span>
+                          ) : (
+                            <span className="text-stone-600">₪{b.slot.course.price}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {canAct && (
+                        <div className="grid grid-cols-2 gap-2 md:flex md:shrink-0">
+                          {b.status === "pending" ? (
+                            <Button
+                              className="min-h-11 min-w-0 md:min-h-0"
+                              disabled={approvingId === b.id}
+                              onClick={() => approve(b)}
+                            >
+                              {t("approve")}
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="danger"
+                            className={`min-h-11 min-w-0 md:min-h-0 ${b.status === "pending" ? "" : "col-span-2"}`}
+                            onClick={() => {
+                              setCancelError("");
+                              setCancelling(b);
+                            }}
+                          >
+                            {t("cancel")}
+                          </Button>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
 
       {cancelling && (
         <ConfirmModal
