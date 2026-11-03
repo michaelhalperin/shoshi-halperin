@@ -164,6 +164,8 @@ export default function AdminBookings() {
                           </h4>
                           {b.status === "cancelled" ? (
                             <Badge tone="red">{t("cancelled")}</Badge>
+                          ) : b.paymentStatus === "unpaid" ? (
+                            <Badge tone="amber">{t("unpaid")}</Badge>
                           ) : b.status === "pending" ? (
                             <Badge tone="amber">{t("pendingApproval")}</Badge>
                           ) : isPast ? (
@@ -171,6 +173,9 @@ export default function AdminBookings() {
                           ) : (
                             <Badge tone="green">{t("confirmed")}</Badge>
                           )}
+                          {b.paymentStatus === "paid" && b.status !== "cancelled" ? (
+                            <Badge tone="green">{t("paid")}</Badge>
+                          ) : null}
                         </div>
                         <p className="mt-0.5 break-words text-xs text-stone-500">
                           <span dir="ltr">{b.phone}</span>

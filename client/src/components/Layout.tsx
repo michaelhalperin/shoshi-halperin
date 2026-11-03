@@ -292,6 +292,12 @@ export default function Layout() {
               <span className="text-stone-300" aria-hidden>
                 ·
               </span>
+              <Link to="/terms" className="underline decoration-stone-300 underline-offset-2 hover:text-stone-600">
+                {t("termsTitle")}
+              </Link>
+              <span className="text-stone-300" aria-hidden>
+                ·
+              </span>
               <span className="inline-flex items-center gap-1">
                 {t("createdBy")}
                 <a

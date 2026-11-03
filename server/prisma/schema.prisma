@@ -96,6 +96,13 @@ model Booking {
   finalPrice     Float?
   discountAmount Float?
   lang           String   @default("he")
+  // "none" = nothing to pay online (free / price on request), "unpaid", "paid"
+  paymentStatus  String   @default("none")
+  paymentProcessId     String?
+  paymentProcessToken  String?
+  paymentTransactionId String?
+  paidAmount     Float?
+  paidAt         DateTime?
   reminderSentAt DateTime?
   thankYouSentAt DateTime?
   createdAt      DateTime @default(now())

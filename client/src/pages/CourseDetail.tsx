@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError, type CouponValidation, type Course, type Slot } from "../api";
 import SlotCalendar, { toDateKey } from "../components/SlotCalendar";
 import { Button, CourseImage, ErrorNote, Input, Modal, ModalActions, OrnamentalDivider, Spinner } from "../components/ui";
@@ -19,7 +19,10 @@ export default function CourseDetail() {
 
   // Guest booking form state
   const [bookingSlot, setBookingSlot] = useState<Slot | null>(null);
-  const [form, setForm] = useState({ name: "", phone: "", email: "" });
+  const [form, setForm] = useState({ name: "", lastName: "", phone: "", email: "" });
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [payOnline, setPayOnline] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [couponCode, setCouponCode] = useState("");
   const [couponResult, setCouponResult] = useState<CouponValidation | null>(null);
   const [couponError, setCouponError] = useState("");
@@ -29,6 +32,18 @@ export default function CourseDetail() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
+
+  useEffect(() => {
+    api.get<{ online: boolean }>("/api/payments/config").then((d) => setPayOnline(d.online)).catch(() => {});
+  }, []);
+
+  // Coming back from the payment page.
+  useEffect(() => {
+    const result = searchParams.get("payment");
+    if (!result) return;
+    setSuccess(result === "success" ? t("paymentSuccess") : t("paymentCancelled"));
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams, t]);
 
   const loadSlots = useCallback(() => {
     api.get<{ slots: Slot[] }>(`/api/slots?courseId=${id}`).then((d) => setSlots(d.slots));
@@ -68,7 +83,8 @@ export default function CourseDetail() {
   }, [slots, selectedDate]);
 
   const openBooking = (slot: Slot) => {
-    setForm({ name: "", phone: "", email: "" });
+    setForm({ name: "", lastName: "", phone: "", email: "" });
+    setAcceptTerms(false);
     setCouponCode("");
     setCouponResult(null);
     setCouponError("");
@@ -107,16 +123,25 @@ export default function CourseDetail() {
     e.preventDefault();
     if (!bookingSlot) return;
     setFormError("");
+    if (!acceptTerms) return setFormError(t("termsRequired"));
     setBusy(true);
     try {
-      await api.post("/api/bookings", {
+      const { lastName, ...contact } = form;
+      const res = await api.post<{ paymentUrl?: string }>("/api/bookings", {
         slotId: bookingSlot.id,
-        ...form,
+        ...contact,
+        name: `${contact.name.trim()} ${lastName.trim()}`.trim(),
+        acceptTerms: true,
         lang,
         couponCode: course?.customPrice
           ? undefined
           : (couponResult?.code ?? (couponCode.trim() || undefined)),
       });
+      if (res.paymentUrl) {
+        setSuccess(t("paymentRedirecting"));
+        window.location.href = res.paymentUrl;
+        return;
+      }
       setBookingSlot(null);
       setSuccess(t("bookedSuccess"));
       loadSlots();
@@ -310,13 +335,22 @@ export default function CourseDetail() {
           </div>
 
           <form onSubmit={submitBooking} className="space-y-5">
-            <Input
-              label={t("name")}
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              autoComplete="name"
-            />
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Input
+                label={t("firstName")}
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                autoComplete="given-name"
+              />
+              <Input
+                label={t("lastName")}
+                required
+                value={form.lastName}
+                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                autoComplete="family-name"
+              />
+            </div>
             <div className="grid gap-5 sm:grid-cols-2">
               <Input
                 label={t("phone")}
@@ -368,13 +402,29 @@ export default function CourseDetail() {
                 {couponError && <p className="mt-2 text-sm text-red-600">{couponError}</p>}
               </div>
             )}
+            <label className="flex items-start gap-2.5 text-sm font-light text-stone-600">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-clay-600"
+              />
+              <span>
+                {t("termsAcceptPre")}
+                <Link to="/terms" target="_blank" className="font-semibold text-clay-700 underline decoration-clay-300 underline-offset-4">
+                  {t("termsLink")}
+                </Link>
+              </span>
+            </label>
             {formError && <ErrorNote message={formError} />}
             <ModalActions>
               <Button type="button" variant="ghost" onClick={() => setBookingSlot(null)} className="w-full sm:w-auto">
                 {t("cancel")}
               </Button>
               <Button type="submit" disabled={busy} className="w-full sm:w-auto">
-                {t("bookNow")}
+                {payOnline && !course.customPrice && (couponResult?.finalPrice ?? course.price) > 0
+                  ? t("payAndBook")
+                  : t("bookNow")}
               </Button>
             </ModalActions>
           </form>

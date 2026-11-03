@@ -178,6 +178,7 @@ export interface Slot {
 export interface Booking {
   id: string;
   status: string;
+  paymentStatus?: string;
   createdAt: string;
   name: string;
   phone: string;

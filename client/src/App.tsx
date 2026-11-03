@@ -4,6 +4,7 @@ import { useAuth } from "./auth";
 import Layout from "./components/Layout";
 import { Spinner } from "./components/ui";
 import About from "./pages/About";
+import Terms from "./pages/Terms";
 import Contact from "./pages/Contact";
 import CourseDetail from "./pages/CourseDetail";
 import Gallery from "./pages/Gallery";
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/recipes/:id" element={<RecipeDetail />} />
           <Route path="/gallery" element={<Gallery />} />

@@ -13,6 +13,8 @@ import {
   sendBookingRequestEmail,
 } from "../mail.js";
 import { buildIcs } from "../calendar.js";
+import { createGrowPayment, growConfigured } from "../grow.js";
+import { clientBaseUrl } from "../mail.js";
 import { prisma } from "../prisma.js";
 
 export const bookingsRouter = Router();
@@ -24,7 +26,20 @@ const createSchema = z.object({
   email: z.string().email(),
   couponCode: z.string().optional().or(z.literal("")),
   lang: z.enum(["en", "he"]).optional(),
+  acceptTerms: z.literal(true),
 });
+
+// Drops an unpaid booking and gives its coupon use back.
+export async function releaseBooking(id: string) {
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.booking.findUnique({ where: { id } });
+    if (!existing || existing.paymentStatus === "paid" || existing.status === "cancelled") return;
+    await tx.booking.update({ where: { id }, data: { status: "cancelled" } });
+    if (existing.couponId) {
+      await tx.coupon.update({ where: { id: existing.couponId }, data: { usedCount: { decrement: 1 } } });
+    }
+  });
+}
 
 // Public: guests book with their contact details, no account needed.
 bookingsRouter.post("/", async (req, res) => {
@@ -81,8 +96,13 @@ bookingsRouter.post("/", async (req, res) => {
         });
       }
 
+      // Price on request and free workshops skip online payment and wait for approval.
+      const amount = slot.course.customPrice ? 0 : (finalPrice ?? slot.course.price);
+      const payOnline = growConfigured() && amount > 0;
+
       return tx.booking.create({
         data: {
+          paymentStatus: payOnline ? "unpaid" : "none",
           slotId,
           name,
           phone,
@@ -97,6 +117,34 @@ bookingsRouter.post("/", async (req, res) => {
         include: { slot: { include: { course: true } } },
       });
     });
+
+    if (booking.paymentStatus === "unpaid") {
+      // Held for a short while; confirmed by the Grow callback once the payment goes through.
+      const amount = booking.finalPrice ?? booking.slot.course.price;
+      const site = clientBaseUrl();
+      try {
+        const payment = await createGrowPayment({
+          bookingId: booking.id,
+          amount,
+          description: `${booking.slot.course.titleHe}`,
+          fullName: booking.name,
+          phone: booking.phone,
+          email,
+          successUrl: `${site}/courses/${booking.slot.course.id}?payment=success`,
+          cancelUrl: `${site}/courses/${booking.slot.course.id}?payment=cancelled`,
+          notifyUrl: `${site}/api/payments/grow/notify`,
+        });
+        await prisma.booking.update({
+          where: { id: booking.id },
+          data: { paymentProcessId: payment.processId, paymentProcessToken: payment.processToken },
+        });
+        return res.status(201).json({ booking, paymentUrl: payment.url });
+      } catch (err) {
+        console.error(err);
+        await releaseBooking(booking.id);
+        return res.status(502).json({ error: "Payment could not be started", code: "PAYMENT_FAILED" });
+      }
+    }
 
     // The spot is only confirmed once the admin approves it.
     void sendBookingRequestEmail({

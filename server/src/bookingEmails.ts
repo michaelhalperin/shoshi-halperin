@@ -1,5 +1,9 @@
 import { sendBookingReminderEmail, sendThankYouEmail } from "./mail.js";
 import { prisma } from "./prisma.js";
+import { releaseBooking } from "./routes/bookings.js";
+
+// An unpaid booking holds its spot only while the Grow payment page is valid.
+const UNPAID_HOLD_MS = 30 * 60 * 1000;
 
 const HOUR_MS = 60 * 60 * 1000;
 const CHECK_INTERVAL_MS = 15 * 60 * 1000;
@@ -29,6 +33,16 @@ function toDetails(booking: {
 }
 
 export async function sendDueBookingEmails(now = new Date()) {
+  const abandoned = await prisma.booking.findMany({
+    where: {
+      paymentStatus: "unpaid",
+      status: { not: "cancelled" },
+      createdAt: { lt: new Date(now.getTime() - UNPAID_HOLD_MS) },
+    },
+    select: { id: true },
+  });
+  for (const { id } of abandoned) await releaseBooking(id);
+
   const include = { slot: { include: { course: true } } };
 
   const reminders = await prisma.booking.findMany({
